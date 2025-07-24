@@ -1,0 +1,44 @@
+{
+  "name": "jlj2-users",
+  "version": "0.1.0",
+  "description": "Simple User/Auth Microservice",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && pnpm check-lint && pnpm check-format",
+    "check-format": "prettier . --check",
+    "check-lint": "eslint src --ext .ts",
+    "fix-format": "prettier . --write",
+    "fix-lint": "eslint src --ext .ts --fix",
+    "start": "node ./src/app.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "Auth",
+    "user",
+    "openid-connect"
+  ],
+  "author": "Jared Jardine <jared@jljsquared.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@flydotio/dockerfile": "0.7.10",
+    "@types/express": "5.0.3",
+    "@typescript-eslint/eslint-plugin": "8.38.0",
+    "@typescript-eslint/parser": "8.38.0",
+    "eslint": "9.31.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-config-standard": "17.1.0",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-n": "17.21.0",
+    "eslint-plugin-prettier": "5.5.3",
+    "husky": "9.1.7",
+    "lint-staged": "16.1.2",
+    "prettier": "3.6.2",
+    "typescript": "5.8.3"
+  },
+  "dependencies": {
+    "dotenv": "17.2.0",
+    "express": "5.1.0"
+  }
+}
