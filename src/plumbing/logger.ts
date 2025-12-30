@@ -5,7 +5,12 @@ const { name, version } = info
 export const log = (
   message: string | { message: string; [key: string]: string | object },
 ) => {
-  let logMessage
+  let logMessage: {
+    message: string
+    app: string
+    version: string
+    [key: string]: string | object
+  }
   if (typeof message === 'string') {
     logMessage = {
       message,
