@@ -1,0 +1,19 @@
+---
+description: This rule enforces preferred Typescript programming patterns
+globs:
+  - '*.ts'
+  - '*.tsx'
+alwaysApply: true
+---
+# General AI Instructions
+
+When generating or refactoring code the AI assistant must:
+
+*   **Use functional and declarative programming patterns; avoid classes where possible.**
+*   **If there is not a markdown files with the plan for the current prompt, always start a task by creating a plan and writing that plan to a markdown file.**
+*   **When completing a prompt, if you are following a plan always revisit the plan to verify you have completed the step you were asked to complete and update the plan to mark your progress.**
+*   **Prefer `const` over `let`** for variable declarations by default.
+*   **Use descriptive variable names** (e.g., `isLoading`, `isFeatureXYZEnabled`).
+*   **Use the `is` prefix on all boolean variables**
+*   **Word boolean variables so that `false` is the default value**
+*   **When creating new files and folders use `kabob-case-nameing-conventions`.**
