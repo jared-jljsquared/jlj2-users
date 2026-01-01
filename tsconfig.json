@@ -7,8 +7,15 @@
     "esModuleInterop": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "strict": true
+    "strict": true,
+    "types": ["node"],
+    "skipLibCheck": true
   },
   "lib": ["es2015"],
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "tests/**/*",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
 }

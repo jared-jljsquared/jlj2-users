@@ -17,3 +17,5 @@ When generating or refactoring code the AI assistant must:
 *   **Use the `is` prefix on all boolean variables**
 *   **Word boolean variables so that `false` is the default value**
 *   **When creating new files and folders use `kabob-case-nameing-conventions`.**
+*   **When creating new interfaces prefer to place them in their own file.**
+*   **Do not use barrel files unless absolutely necessary.**

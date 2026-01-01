@@ -25,3 +25,14 @@ dist-ssr
 
 .env
 *.local.*
+
+# Testing output
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Vitest
+coverage/
+.vitest/
+*.test.ts.snap
