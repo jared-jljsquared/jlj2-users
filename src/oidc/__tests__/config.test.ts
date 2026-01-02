@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { getOidcConfig } from '../config.ts'
+import { clearConfigCache, getOidcConfig } from '../config.ts'
 
 describe('OIDC Configuration', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
     process.env = { ...originalEnv }
+    clearConfigCache()
   })
 
   afterEach(() => {
     process.env = originalEnv
+    clearConfigCache()
   })
 
   it('should use default values when env vars are not set', () => {
@@ -56,5 +58,22 @@ describe('OIDC Configuration', () => {
     expect(config.scopesSupported).toContain('openid')
     expect(config.scopesSupported).toContain('profile')
     expect(config.scopesSupported).toContain('email')
+  })
+
+  it('should validate configuration on startup', () => {
+    // This should not throw with valid defaults
+    expect(() => getOidcConfig()).not.toThrow()
+  })
+
+  it('should throw error for invalid issuer URL', () => {
+    process.env.OIDC_ISSUER = 'not-a-valid-url'
+
+    expect(() => getOidcConfig()).toThrow('OIDC issuer must be a valid URL')
+  })
+
+  it('should throw error for empty issuer', () => {
+    process.env.OIDC_ISSUER = ''
+
+    expect(() => getOidcConfig()).toThrow('OIDC issuer must be set')
   })
 })
