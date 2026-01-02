@@ -475,7 +475,7 @@ describe('JWT Signing and Verification', () => {
     expect(verifiedPayload.sub).toBe('user123')
   })
 
-  it('should detect ES256 algorithm from token header when not provided', async () => {
+  it('should verify JWT with ES256 when algorithm is explicitly provided', async () => {
     const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
       namedCurve: 'prime256v1',
     })
@@ -483,8 +483,8 @@ describe('JWT Signing and Verification', () => {
     const payload = { sub: 'user123' }
     const token = signJwt(payload, privateKey, 'ES256')
 
-    // Verify without specifying algorithm - should detect from header
-    const { payload: verifiedPayload } = verifyJwt(token, publicKey)
+    // SECURITY: Algorithm must be explicitly provided to prevent algorithm confusion attacks
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'ES256')
     expect(verifiedPayload.sub).toBe('user123')
   })
 
@@ -664,14 +664,14 @@ describe('JWT Signing and Verification', () => {
     expect(verifiedPayload.sub).toBe('user123')
   })
 
-  it('should detect HS256 algorithm from token header when not provided', () => {
+  it('should verify JWT with HS256 when algorithm is explicitly provided', () => {
     const secret = 'my-secret-key'
 
     const payload = { sub: 'user123' }
     const token = signJwt(payload, secret, 'HS256')
 
-    // Verify without specifying algorithm - should detect from header
-    const { payload: verifiedPayload } = verifyJwt(token, secret)
+    // SECURITY: Algorithm must be explicitly provided to prevent algorithm confusion attacks
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS256')
     expect(verifiedPayload.sub).toBe('user123')
   })
 
@@ -860,7 +860,7 @@ describe('JWT Signing and Verification', () => {
     expect(verifiedPayload.sub).toBe('user123')
   })
 
-  it('should detect algorithm from token header when not provided', async () => {
+  it('should verify JWT with RS256 when algorithm is explicitly provided', async () => {
     const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
       modulusLength: 2048,
     })
@@ -868,24 +868,25 @@ describe('JWT Signing and Verification', () => {
     const payload = { sub: 'user123' }
     const token = signJwt(payload, privateKey, 'RS256')
 
-    // Verify without specifying algorithm - should detect from header
-    const { payload: verifiedPayload } = verifyJwt(token, publicKey)
+    // SECURITY: Algorithm must be explicitly provided to prevent algorithm confusion attacks
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'RS256')
     expect(verifiedPayload.sub).toBe('user123')
   })
 
-  it('should reject tokens with unsupported algorithm', async () => {
-    const { publicKey } = await generateKeyPairAsync('rsa', {
+  it('should reject tokens when header algorithm does not match provided algorithm', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
       modulusLength: 2048,
     })
 
-    // Create a token with unsupported algorithm in header
-    const header = { alg: 'PS256', typ: 'JWT' }
+    // Create a token with RS256 in header
     const payload = { sub: 'user123' }
-    const invalidToken = assembleJwt(header, payload, 'signature')
+    const token = signJwt(payload, privateKey, 'RS256')
 
+    // SECURITY: Algorithm mismatch should be rejected
+    // Attempting to verify with a different algorithm should fail
     expect(() => {
-      verifyJwt(invalidToken, publicKey)
-    }).toThrow('Unsupported JWT algorithm')
+      verifyJwt(token, publicKey, 'ES256')
+    }).toThrow('JWT algorithm mismatch')
   })
 })
 

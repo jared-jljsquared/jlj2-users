@@ -242,19 +242,20 @@ export const parseJwt = (
 
 /**
  * Verifies a JWT token signature and validates claims
+ *
+ * SECURITY: The algorithm parameter is required to prevent algorithm confusion attacks (CVE-2015-9235).
+ * Never trust the algorithm from the token header when verifying signatures.
  */
 export const verifyJwt = (
   token: string,
   keyOrSecret: string | Buffer | crypto.KeyObject,
-  algorithm?: JwtAlgorithm,
+  algorithm: JwtAlgorithm,
 ): {
   header: Record<string, unknown>
   payload: Record<string, unknown>
 } => {
   const { header, payload, signature } = parseJwt(token)
 
-  // Determine algorithm from header if not provided
-  const tokenAlgorithm = (algorithm ?? (header.alg as string)) as JwtAlgorithm
   const supportedAlgorithms: JwtAlgorithm[] = [
     'RS256',
     'RS384',
@@ -266,19 +267,23 @@ export const verifyJwt = (
     'HS384',
     'HS512',
   ]
-  if (!supportedAlgorithms.includes(tokenAlgorithm)) {
+  if (!supportedAlgorithms.includes(algorithm)) {
     throw new Error(
-      `Unsupported JWT algorithm: ${tokenAlgorithm}. Supported algorithms: ${supportedAlgorithms.join(', ')}`,
+      `Unsupported JWT algorithm: ${algorithm}. Supported algorithms: ${supportedAlgorithms.join(', ')}`,
     )
   }
 
-  // Check if algorithm in header matches the verification algorithm
+  // SECURITY: Always validate that the algorithm in the header matches the expected algorithm
+  // This prevents algorithm confusion attacks where an attacker might try to use a different
+  // algorithm than expected (e.g., using HMAC with a public key as the secret)
   const headerAlgorithm = header.alg as string
-  if (algorithm && headerAlgorithm !== algorithm) {
+  if (headerAlgorithm !== algorithm) {
     throw new Error(
       `JWT algorithm mismatch: token uses ${headerAlgorithm} but verification requested ${algorithm}`,
     )
   }
+
+  const tokenAlgorithm = algorithm
 
   // Verify signature - (original signature was based off of the first two parts)
   const signatureInput = token.split('.').slice(0, 2).join('.')
