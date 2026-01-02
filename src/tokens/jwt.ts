@@ -394,8 +394,24 @@ export const verifyJwt = (
   }
 
   // Verify expiration
-  const exp = payload.exp as number | undefined
-  if (exp !== undefined) {
+  // SECURITY: Per RFC 7519, exp MUST be a NumericDate (integer representing seconds since epoch)
+  // We must validate the type before comparison to prevent algorithm confusion attacks
+  // where non-numeric values could bypass expiration checks (e.g., exp: "never" -> NaN comparison -> false -> token passes)
+  const expValue = payload.exp
+  if (expValue !== undefined && expValue !== null) {
+    // Validate that exp is actually a number (not string, boolean, etc.)
+    if (typeof expValue !== 'number') {
+      throw new Error(
+        'Invalid JWT: exp claim must be a number (NumericDate per RFC 7519)',
+      )
+    }
+    // Validate that it's a finite integer (NumericDate is an integer)
+    if (!Number.isFinite(expValue) || !Number.isInteger(expValue)) {
+      throw new Error(
+        'Invalid JWT: exp claim must be a finite integer (NumericDate per RFC 7519)',
+      )
+    }
+    const exp = expValue as number
     const now = Math.floor(Date.now() / 1000)
     if (now >= exp) {
       throw new Error('JWT has expired')
@@ -403,8 +419,23 @@ export const verifyJwt = (
   }
 
   // Verify not-before (nbf)
-  const nbf = payload.nbf as number | undefined
-  if (nbf !== undefined) {
+  // SECURITY: Per RFC 7519, nbf MUST be a NumericDate (integer representing seconds since epoch)
+  // Same validation required as exp to prevent bypass attacks
+  const nbfValue = payload.nbf
+  if (nbfValue !== undefined && nbfValue !== null) {
+    // Validate that nbf is actually a number (not string, boolean, etc.)
+    if (typeof nbfValue !== 'number') {
+      throw new Error(
+        'Invalid JWT: nbf claim must be a number (NumericDate per RFC 7519)',
+      )
+    }
+    // Validate that it's a finite integer (NumericDate is an integer)
+    if (!Number.isFinite(nbfValue) || !Number.isInteger(nbfValue)) {
+      throw new Error(
+        'Invalid JWT: nbf claim must be a finite integer (NumericDate per RFC 7519)',
+      )
+    }
+    const nbf = nbfValue as number
     const now = Math.floor(Date.now() / 1000)
     if (now < nbf) {
       throw new Error('JWT is not yet valid (nbf claim)')

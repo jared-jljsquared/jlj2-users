@@ -1,4 +1,4 @@
-import { generateKeyPair, generateKeyPairSync } from 'node:crypto'
+import crypto, { generateKeyPair, generateKeyPairSync } from 'node:crypto'
 import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 import {
@@ -1020,5 +1020,98 @@ describe('JWT Assembly', () => {
 
     expect(parts.length).toBe(3)
     expect(parts[2]).toBe(signature)
+  })
+})
+
+describe('JWT Time Claim Validation', () => {
+  it('should reject tokens with non-numeric exp claim', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    // Create a payload with a non-numeric exp claim
+    const payload = {
+      sub: 'user123',
+      exp: 'never', // Non-numeric string
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    // Should reject because exp must be a number (NumericDate per RFC 7519)
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow(/exp claim must be a number/i)
+  })
+
+  it('should reject tokens with non-numeric nbf claim', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    // Create a payload with a non-numeric nbf claim
+    const payload = {
+      sub: 'user123',
+      nbf: 'always', // Non-numeric string
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    // Should reject because nbf must be a number (NumericDate per RFC 7519)
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow(/nbf claim must be a number/i)
+  })
+
+  it('should reject tokens with exp claim as string number', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    // Create a payload with exp as a string that looks like a number
+    // Use a future date so it wouldn't be expired if treated as a number
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 86400 // 24 hours from now
+    const payload = {
+      sub: 'user123',
+      exp: String(futureTimestamp), // String, not number
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    // Should reject because exp must be an actual number, not a string
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow(/exp claim must be a number/i)
+  })
+
+  it('should reject tokens with exp as boolean', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    // Create a payload with exp as boolean
+    const header = { alg: 'RS256', typ: 'JWT' }
+    const payloadWithBoolean = {
+      sub: 'user123',
+      exp: true, // Boolean instead of number
+    }
+
+    // Manually create token since signJwt would type-check
+    const encodedHeader = base64UrlEncode(Buffer.from(JSON.stringify(header)))
+    const encodedPayload = base64UrlEncode(
+      Buffer.from(JSON.stringify(payloadWithBoolean)),
+    )
+    const signatureInput = `${encodedHeader}.${encodedPayload}`
+    const sign = crypto.createSign('RSA-SHA256')
+    sign.update(signatureInput)
+    sign.end()
+    const signature = base64UrlEncode(
+      Buffer.from(sign.sign(privateKey, 'base64'), 'base64'),
+    )
+    const token = `${encodedHeader}.${encodedPayload}.${signature}`
+
+    // Should reject because exp must be a number (NumericDate per RFC 7519)
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow(/exp claim must be a number/i)
   })
 })
