@@ -23,10 +23,11 @@ Implement OIDC discovery endpoints and configuration management to expose provid
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-02-discovery.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-02-discovery.md)
 
-### Step 3: JWT Token Utilities with Node.js Crypto
+### Step 3: JWT Token Utilities with Node.js Crypto ✅
 Create JWT token creation, signing, and verification utilities using Node.js crypto library for RS256/ES256 signing and encryption.
 
-**Details:** See [JLJ-01-step-03-jwt-utilities.md](./JLJ-01-step-03-jwt-utilities.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-03-jwt-utilities.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-03-jwt-utilities.md)
 
 ### Step 4: Key Management and JWKS Endpoint
 Implement key pair generation, rotation, and JWKS (JSON Web Key Set) endpoint for public key distribution.
