@@ -3,6 +3,20 @@ import type { JwtHeader } from './types/jwt-header.ts'
 import type { JwtPayload } from './types/jwt-payload.ts'
 
 /**
+ * Supported JWT signing algorithms
+ */
+export type JwtAlgorithm =
+  | 'RS256'
+  | 'RS384'
+  | 'RS512'
+  | 'ES256'
+  | 'ES384'
+  | 'ES512'
+  | 'HS256'
+  | 'HS384'
+  | 'HS512'
+
+/**
  * Encodes a Buffer to Base64URL format
  * Base64URL is Base64 with URL-safe characters and no padding
  */
@@ -31,7 +45,7 @@ export const base64UrlDecode = (str: string): Buffer => {
  * Creates a JWT header with the specified algorithm
  */
 export const createJwtHeader = (
-  algorithm: 'RS256' | 'ES256',
+  algorithm: JwtAlgorithm,
   kid?: string,
 ): JwtHeader => {
   const header: JwtHeader = {
@@ -73,12 +87,12 @@ export const createJwtPayload = (
 }
 
 /**
- * Signs a JWT token using RS256 (RSA with SHA-256) or ES256 (ECDSA with SHA-256)
+ * Signs a JWT token using RSA, ECDSA, or HMAC algorithms
  */
 export const signJwt = (
   payload: Record<string, unknown>,
-  privateKey: string | Buffer | crypto.KeyObject,
-  algorithm: 'RS256' | 'ES256' = 'RS256',
+  keyOrSecret: string | Buffer | crypto.KeyObject,
+  algorithm: JwtAlgorithm = 'RS256',
   kid?: string,
 ): string => {
   const header = createJwtHeader(algorithm, kid)
@@ -88,26 +102,63 @@ export const signJwt = (
 
   const signatureInput = `${encodedHeader}.${encodedPayload}`
 
-  // Node.js crypto uses 'RSA-SHA256' for RS256 and 'SHA256' for ES256 (ECDSA)
-  const signAlgorithm = algorithm === 'RS256' ? 'RSA-SHA256' : 'SHA256'
-  const sign = crypto.createSign(signAlgorithm)
-  sign.update(signatureInput)
-  sign.end()
+  let signature: string
 
-  const keyObject =
-    typeof privateKey === 'string' || Buffer.isBuffer(privateKey)
-      ? crypto.createPrivateKey(privateKey)
-      : privateKey
+  if (algorithm.startsWith('HS')) {
+    // HMAC algorithms use symmetric keys
+    const hashAlgorithm =
+      algorithm === 'HS256'
+        ? 'SHA256'
+        : algorithm === 'HS384'
+          ? 'SHA384'
+          : 'SHA512'
+    const hmac = crypto.createHmac(hashAlgorithm, keyOrSecret)
+    hmac.update(signatureInput)
+    const signatureBuffer = hmac.digest()
+    signature = base64UrlEncode(signatureBuffer)
+  } else if (algorithm.startsWith('RS')) {
+    // RSA algorithms use asymmetric keys
+    const hashAlgorithm =
+      algorithm === 'RS256'
+        ? 'RSA-SHA256'
+        : algorithm === 'RS384'
+          ? 'RSA-SHA384'
+          : 'RSA-SHA512'
+    const sign = crypto.createSign(hashAlgorithm)
+    sign.update(signatureInput)
+    sign.end()
 
-  // For ES256, use IEEE P1363 format (RFC 7518 requirement) instead of default DER encoding
-  const signOptions =
-    algorithm === 'ES256'
-      ? { key: keyObject, dsaEncoding: 'ieee-p1363' as const }
-      : keyObject
-  const signature = sign.sign(signOptions, 'base64')
-  const encodedSignature = base64UrlEncode(Buffer.from(signature, 'base64'))
+    const keyObject =
+      typeof keyOrSecret === 'string' || Buffer.isBuffer(keyOrSecret)
+        ? crypto.createPrivateKey(keyOrSecret)
+        : keyOrSecret
 
-  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+    const signatureBase64 = sign.sign(keyObject, 'base64')
+    signature = base64UrlEncode(Buffer.from(signatureBase64, 'base64'))
+  } else {
+    // ES algorithms (ECDSA) use asymmetric keys with IEEE P1363 format
+    const hashAlgorithm =
+      algorithm === 'ES256'
+        ? 'SHA256'
+        : algorithm === 'ES384'
+          ? 'SHA384'
+          : 'SHA512'
+    const sign = crypto.createSign(hashAlgorithm)
+    sign.update(signatureInput)
+    sign.end()
+
+    const keyObject =
+      typeof keyOrSecret === 'string' || Buffer.isBuffer(keyOrSecret)
+        ? crypto.createPrivateKey(keyOrSecret)
+        : keyOrSecret
+
+    // For ES algorithms, use IEEE P1363 format (RFC 7518 requirement) instead of default DER encoding
+    const signOptions = { key: keyObject, dsaEncoding: 'ieee-p1363' as const }
+    const signatureBase64 = sign.sign(signOptions, 'base64')
+    signature = base64UrlEncode(Buffer.from(signatureBase64, 'base64'))
+  }
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`
 }
 
 /**
@@ -152,8 +203,8 @@ export const parseJwt = (
  */
 export const verifyJwt = (
   token: string,
-  publicKey: string | Buffer | crypto.KeyObject,
-  algorithm?: 'RS256' | 'ES256',
+  keyOrSecret: string | Buffer | crypto.KeyObject,
+  algorithm?: JwtAlgorithm,
 ): {
   header: Record<string, unknown>
   payload: Record<string, unknown>
@@ -161,12 +212,21 @@ export const verifyJwt = (
   const { header, payload, signature } = parseJwt(token)
 
   // Determine algorithm from header if not provided
-  const tokenAlgorithm = (algorithm ?? (header.alg as string)) as
-    | 'RS256'
-    | 'ES256'
-  if (tokenAlgorithm !== 'RS256' && tokenAlgorithm !== 'ES256') {
+  const tokenAlgorithm = (algorithm ?? (header.alg as string)) as JwtAlgorithm
+  const supportedAlgorithms: JwtAlgorithm[] = [
+    'RS256',
+    'RS384',
+    'RS512',
+    'ES256',
+    'ES384',
+    'ES512',
+    'HS256',
+    'HS384',
+    'HS512',
+  ]
+  if (!supportedAlgorithms.includes(tokenAlgorithm)) {
     throw new Error(
-      `Unsupported JWT algorithm: ${tokenAlgorithm}. Only RS256 and ES256 are supported.`,
+      `Unsupported JWT algorithm: ${tokenAlgorithm}. Supported algorithms: ${supportedAlgorithms.join(', ')}`,
     )
   }
 
@@ -180,40 +240,97 @@ export const verifyJwt = (
 
   // Verify signature - (original signature was based off of the first two parts)
   const signatureInput = token.split('.').slice(0, 2).join('.')
-  const signatureBuffer = base64UrlDecode(signature)
 
-  // Node.js crypto uses 'RSA-SHA256' for RS256 and 'SHA256' for ES256 (ECDSA)
-  const verifyAlgorithm = tokenAlgorithm === 'RS256' ? 'RSA-SHA256' : 'SHA256'
-  const verify = crypto.createVerify(verifyAlgorithm)
-  verify.update(signatureInput)
-  verify.end()
+  if (tokenAlgorithm.startsWith('HS')) {
+    // HMAC algorithms use symmetric keys
+    const hashAlgorithm =
+      tokenAlgorithm === 'HS256'
+        ? 'SHA256'
+        : tokenAlgorithm === 'HS384'
+          ? 'SHA384'
+          : 'SHA512'
+    const hmac = crypto.createHmac(hashAlgorithm, keyOrSecret)
+    hmac.update(signatureInput)
+    const expectedSignature = base64UrlEncode(hmac.digest())
 
-  const keyObject =
-    typeof publicKey === 'string' || Buffer.isBuffer(publicKey)
-      ? crypto.createPublicKey(publicKey)
-      : publicKey
+    if (signature !== expectedSignature) {
+      throw new Error('Invalid JWT signature')
+    }
+  } else if (tokenAlgorithm.startsWith('RS')) {
+    // RSA algorithms use asymmetric keys
+    const hashAlgorithm =
+      tokenAlgorithm === 'RS256'
+        ? 'RSA-SHA256'
+        : tokenAlgorithm === 'RS384'
+          ? 'RSA-SHA384'
+          : 'RSA-SHA512'
+    const verify = crypto.createVerify(hashAlgorithm)
+    verify.update(signatureInput)
+    verify.end()
 
-  try {
-    // For ES256, use IEEE P1363 format (RFC 7518 requirement) instead of default DER encoding
-    const verifyOptions =
+    const keyObject =
+      typeof keyOrSecret === 'string' || Buffer.isBuffer(keyOrSecret)
+        ? crypto.createPublicKey(keyOrSecret)
+        : keyOrSecret
+
+    const signatureBuffer = base64UrlDecode(signature)
+    try {
+      const isValid = verify.verify(keyObject, signatureBuffer)
+      if (!isValid) {
+        throw new Error('Invalid JWT signature')
+      }
+    } catch (error) {
+      // Handle crypto errors (e.g., wrong algorithm, invalid key format)
+      if (
+        error instanceof Error &&
+        (error.message.includes('Invalid') ||
+          error.message.includes('digest') ||
+          error.message.includes('key'))
+      ) {
+        throw new Error('Invalid JWT signature')
+      }
+      throw error
+    }
+  } else {
+    // ES algorithms (ECDSA) use asymmetric keys with IEEE P1363 format
+    const hashAlgorithm =
       tokenAlgorithm === 'ES256'
-        ? { key: keyObject, dsaEncoding: 'ieee-p1363' as const }
-        : keyObject
-    const isValid = verify.verify(verifyOptions, signatureBuffer)
-    if (!isValid) {
-      throw new Error('Invalid JWT signature')
+        ? 'SHA256'
+        : tokenAlgorithm === 'ES384'
+          ? 'SHA384'
+          : 'SHA512'
+    const verify = crypto.createVerify(hashAlgorithm)
+    verify.update(signatureInput)
+    verify.end()
+
+    const keyObject =
+      typeof keyOrSecret === 'string' || Buffer.isBuffer(keyOrSecret)
+        ? crypto.createPublicKey(keyOrSecret)
+        : keyOrSecret
+
+    const signatureBuffer = base64UrlDecode(signature)
+    try {
+      // For ES algorithms, use IEEE P1363 format (RFC 7518 requirement) instead of default DER encoding
+      const verifyOptions = {
+        key: keyObject,
+        dsaEncoding: 'ieee-p1363' as const,
+      }
+      const isValid = verify.verify(verifyOptions, signatureBuffer)
+      if (!isValid) {
+        throw new Error('Invalid JWT signature')
+      }
+    } catch (error) {
+      // Handle crypto errors (e.g., wrong algorithm, invalid key format)
+      if (
+        error instanceof Error &&
+        (error.message.includes('Invalid') ||
+          error.message.includes('digest') ||
+          error.message.includes('key'))
+      ) {
+        throw new Error('Invalid JWT signature')
+      }
+      throw error
     }
-  } catch (error) {
-    // Handle crypto errors (e.g., wrong algorithm, invalid key format)
-    if (
-      error instanceof Error &&
-      (error.message.includes('Invalid') ||
-        error.message.includes('digest') ||
-        error.message.includes('key'))
-    ) {
-      throw new Error('Invalid JWT signature')
-    }
-    throw error
   }
 
   // Verify expiration

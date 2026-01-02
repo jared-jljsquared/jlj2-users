@@ -98,6 +98,48 @@ describe('JWT Header Creation', () => {
     expect(header.typ).toBe('JWT')
   })
 
+  it('should create header with HS256 algorithm', () => {
+    const header = createJwtHeader('HS256')
+    expect(header.alg).toBe('HS256')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should create header with RS384 algorithm', () => {
+    const header = createJwtHeader('RS384')
+    expect(header.alg).toBe('RS384')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should create header with RS512 algorithm', () => {
+    const header = createJwtHeader('RS512')
+    expect(header.alg).toBe('RS512')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should create header with ES384 algorithm', () => {
+    const header = createJwtHeader('ES384')
+    expect(header.alg).toBe('ES384')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should create header with ES512 algorithm', () => {
+    const header = createJwtHeader('ES512')
+    expect(header.alg).toBe('ES512')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should create header with HS384 algorithm', () => {
+    const header = createJwtHeader('HS384')
+    expect(header.alg).toBe('HS384')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should create header with HS512 algorithm', () => {
+    const header = createJwtHeader('HS512')
+    expect(header.alg).toBe('HS512')
+    expect(header.typ).toBe('JWT')
+  })
+
   it('should include kid when provided', () => {
     const header = createJwtHeader('RS256', 'key-123')
     expect(header.kid).toBe('key-123')
@@ -203,6 +245,82 @@ describe('JWT Signing and Verification', () => {
     const token = signJwt(payload, privateKey, 'ES256')
     const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'ES256')
     expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should sign and verify JWT with RS384', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, privateKey, 'RS384')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'RS384')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should sign and verify JWT with RS512', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, privateKey, 'RS512')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'RS512')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should sign and verify JWT with ES384', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'secp384r1',
+    })
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, privateKey, 'ES384')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'ES384')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should sign and verify JWT with ES512', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'secp521r1',
+    })
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, privateKey, 'ES512')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'ES512')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
   })
 
   it('should include kid in header when provided for ES256', async () => {
@@ -367,6 +485,193 @@ describe('JWT Signing and Verification', () => {
 
     // Verify without specifying algorithm - should detect from header
     const { payload: verifiedPayload } = verifyJwt(token, publicKey)
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should sign and verify JWT with HS256', () => {
+    const secret = 'my-secret-key'
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, secret, 'HS256')
+    const parts = token.split('.')
+    expect(parts.length).toBe(3)
+
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS256')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should sign and verify JWT with HS384', () => {
+    const secret = 'my-secret-key'
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, secret, 'HS384')
+    const parts = token.split('.')
+    expect(parts.length).toBe(3)
+
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS384')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should sign and verify JWT with HS512', () => {
+    const secret = 'my-secret-key'
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, secret, 'HS512')
+    const parts = token.split('.')
+    expect(parts.length).toBe(3)
+
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS512')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should include kid in header when provided for HS256', () => {
+    const secret = 'my-secret-key'
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256', 'key-123')
+
+    const { header } = parseJwt(token)
+    expect(header.kid).toBe('key-123')
+  })
+
+  it('should reject expired HS256 tokens', () => {
+    const secret = 'my-secret-key'
+
+    const payload = {
+      sub: 'user123',
+      exp: Math.floor(Date.now() / 1000) - 3600, // Expired
+    }
+
+    const token = signJwt(payload, secret, 'HS256')
+
+    expect(() => {
+      verifyJwt(token, secret, 'HS256')
+    }).toThrow('JWT has expired')
+  })
+
+  it('should reject HS256 tokens with invalid signature', () => {
+    const secret = 'my-secret-key'
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256')
+
+    // Tamper with signature
+    const parts = token.split('.')
+    parts[2] = 'invalid-signature'
+    const tamperedToken = parts.join('.')
+
+    expect(() => {
+      verifyJwt(tamperedToken, secret, 'HS256')
+    }).toThrow('Invalid JWT signature')
+  })
+
+  it('should reject HS256 tokens with wrong secret', () => {
+    const secret = 'my-secret-key'
+    const wrongSecret = 'wrong-secret-key'
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256')
+
+    expect(() => {
+      verifyJwt(token, wrongSecret, 'HS256')
+    }).toThrow('Invalid JWT signature')
+  })
+
+  it('should reject HS256 tokens with wrong algorithm', () => {
+    const secret = 'my-secret-key'
+    const { publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow('JWT algorithm mismatch')
+  })
+
+  it('should validate nbf (not before) claim for HS256', () => {
+    const secret = 'my-secret-key'
+
+    const futureTime = Math.floor(Date.now() / 1000) + 3600
+    const payload = {
+      sub: 'user123',
+      nbf: futureTime,
+    }
+
+    const token = signJwt(payload, secret, 'HS256')
+
+    expect(() => {
+      verifyJwt(token, secret, 'HS256')
+    }).toThrow('JWT is not yet valid (nbf claim)')
+  })
+
+  it('should accept HS256 tokens with valid nbf claim', () => {
+    const secret = 'my-secret-key'
+
+    const pastTime = Math.floor(Date.now() / 1000) - 3600
+    const payload = {
+      sub: 'user123',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      nbf: pastTime,
+    }
+
+    const token = signJwt(payload, secret, 'HS256')
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should work with string secrets for HS256', () => {
+    const secret = 'my-secret-key'
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256')
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should work with Buffer secrets for HS256', () => {
+    const secret = Buffer.from('my-secret-key')
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256')
+    const { payload: verifiedPayload } = verifyJwt(token, secret, 'HS256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should detect HS256 algorithm from token header when not provided', () => {
+    const secret = 'my-secret-key'
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, secret, 'HS256')
+
+    // Verify without specifying algorithm - should detect from header
+    const { payload: verifiedPayload } = verifyJwt(token, secret)
     expect(verifiedPayload.sub).toBe('user123')
   })
 
@@ -574,7 +879,7 @@ describe('JWT Signing and Verification', () => {
     })
 
     // Create a token with unsupported algorithm in header
-    const header = { alg: 'HS256', typ: 'JWT' }
+    const header = { alg: 'PS256', typ: 'JWT' }
     const payload = { sub: 'user123' }
     const invalidToken = assembleJwt(header, payload, 'signature')
 
