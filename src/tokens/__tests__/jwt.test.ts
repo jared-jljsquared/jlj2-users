@@ -1,0 +1,481 @@
+import { generateKeyPair, generateKeyPairSync } from 'node:crypto'
+import { promisify } from 'node:util'
+import { describe, expect, it } from 'vitest'
+import {
+  assembleJwt,
+  base64UrlDecode,
+  base64UrlEncode,
+  createJwtHeader,
+  createJwtPayload,
+  parseJwt,
+  signJwt,
+  verifyJwt,
+} from '../jwt.ts'
+import type { JwtPayload } from '../types/jwt-payload.ts'
+
+const generateKeyPairAsync = promisify(generateKeyPair)
+
+describe('Base64URL Encoding', () => {
+  it('should encode without padding', () => {
+    const input = Buffer.from('test')
+    const encoded = base64UrlEncode(input)
+    expect(encoded).not.toContain('=')
+    expect(encoded).not.toContain('+')
+    expect(encoded).not.toContain('/')
+  })
+
+  it('should encode with correct character substitution', () => {
+    // Use input that produces Base64 characters that need substitution
+    // Base64 of "test" is "dGVzdA==" which contains '=' padding
+    // Base64 of bytes that produce '+' and '/' characters
+    const input1 = Buffer.from([0xfb, 0xef]) // Produces '+' in Base64
+    const input2 = Buffer.from([0xff, 0xef]) // Produces '/' in Base64
+    const encoded1 = base64UrlEncode(input1)
+    const encoded2 = base64UrlEncode(input2)
+
+    // Check that padding is removed
+    const inputWithPadding = Buffer.from('test')
+    const encodedWithPadding = base64UrlEncode(inputWithPadding)
+    expect(encodedWithPadding).not.toContain('=')
+
+    // Verify no standard Base64 characters that need substitution
+    expect(encoded1).not.toContain('+')
+    expect(encoded2).not.toContain('/')
+  })
+
+  it('should round-trip encode and decode', () => {
+    const original = Buffer.from('Hello, World!')
+    const encoded = base64UrlEncode(original)
+    const decoded = base64UrlDecode(encoded)
+    expect(decoded.toString()).toBe(original.toString())
+  })
+
+  it('should handle empty buffer', () => {
+    const input = Buffer.from('')
+    const encoded = base64UrlEncode(input)
+    const decoded = base64UrlDecode(encoded)
+    expect(decoded.toString()).toBe('')
+  })
+
+  it('should handle various input sizes', () => {
+    const sizes = [1, 10, 100, 1000]
+    for (const size of sizes) {
+      const input = Buffer.alloc(size, 'a')
+      const encoded = base64UrlEncode(input)
+      const decoded = base64UrlDecode(encoded)
+      expect(decoded.toString()).toBe(input.toString())
+    }
+  })
+
+  it('should correctly restore padding when decoding', () => {
+    // Test with strings that need padding
+    const testCases = [
+      'test', // 4 bytes -> no padding needed
+      'te', // 2 bytes -> needs 2 padding
+      't', // 1 byte -> needs 3 padding
+    ]
+
+    for (const testCase of testCases) {
+      const input = Buffer.from(testCase)
+      const encoded = base64UrlEncode(input)
+      const decoded = base64UrlDecode(encoded)
+      expect(decoded.toString()).toBe(testCase)
+    }
+  })
+})
+
+describe('JWT Header Creation', () => {
+  it('should create header with RS256 algorithm', () => {
+    const header = createJwtHeader('RS256')
+    expect(header.alg).toBe('RS256')
+    expect(header.typ).toBe('JWT')
+    expect(header.kid).toBeUndefined()
+  })
+
+  it('should create header with ES256 algorithm', () => {
+    const header = createJwtHeader('ES256')
+    expect(header.alg).toBe('ES256')
+    expect(header.typ).toBe('JWT')
+  })
+
+  it('should include kid when provided', () => {
+    const header = createJwtHeader('RS256', 'key-123')
+    expect(header.kid).toBe('key-123')
+  })
+})
+
+describe('JWT Payload Creation', () => {
+  it('should create payload with required claims', () => {
+    const payload = createJwtPayload({
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+    })
+
+    expect(payload.sub).toBe('user123')
+    expect(payload.iss).toBe('https://example.com')
+    expect(payload.aud).toBe('client-id')
+    expect(payload.exp).toBeGreaterThan(Math.floor(Date.now() / 1000))
+    expect(payload.iat).toBeLessThanOrEqual(Math.floor(Date.now() / 1000))
+  })
+
+  it('should use provided exp and iat values', () => {
+    const now = Math.floor(Date.now() / 1000)
+    const payload = createJwtPayload({
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: now + 7200,
+      iat: now - 100,
+    })
+
+    expect(payload.exp).toBe(now + 7200)
+    expect(payload.iat).toBe(now - 100)
+  })
+
+  it('should include optional claims', () => {
+    const payload = createJwtPayload({
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      nbf: 1000,
+      jti: 'token-id-123',
+    })
+
+    expect(payload.nbf).toBe(1000)
+    expect(payload.jti).toBe('token-id-123')
+  })
+
+  it('should include custom claims', () => {
+    const payload = createJwtPayload({
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      email: 'user@example.com',
+      name: 'Test User',
+    } as Parameters<typeof createJwtPayload>[0])
+
+    const payloadWithCustom = payload as JwtPayload & {
+      email: string
+      name: string
+    }
+    expect(payloadWithCustom.email).toBe('user@example.com')
+    expect(payloadWithCustom.name).toBe('Test User')
+  })
+})
+
+describe('JWT Signing and Verification', () => {
+  it('should sign and verify JWT with RS256', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+    const parts = token.split('.')
+    expect(parts.length).toBe(3)
+
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'RS256')
+    expect(verifiedPayload.sub).toBe('user123')
+    expect(verifiedPayload.iss).toBe('https://example.com')
+  })
+
+  it('should sign and verify JWT with ES256', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: 'client-id',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }
+
+    const token = signJwt(payload, privateKey, 'ES256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'ES256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should include kid in header when provided', async () => {
+    const { privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'RS256', 'key-123')
+
+    const { header } = parseJwt(token)
+    expect(header.kid).toBe('key-123')
+  })
+
+  it('should reject expired tokens', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = {
+      sub: 'user123',
+      exp: Math.floor(Date.now() / 1000) - 3600, // Expired
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow('JWT has expired')
+  })
+
+  it('should reject tokens with invalid signature', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    // Tamper with signature
+    const parts = token.split('.')
+    parts[2] = 'invalid-signature'
+    const tamperedToken = parts.join('.')
+
+    expect(() => {
+      verifyJwt(tamperedToken, publicKey, 'RS256')
+    }).toThrow('Invalid JWT signature')
+  })
+
+  it('should reject tokens with wrong public key', async () => {
+    const { privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+    const { publicKey: wrongPublicKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    expect(() => {
+      verifyJwt(token, wrongPublicKey, 'RS256')
+    }).toThrow('Invalid JWT signature')
+  })
+
+  it('should reject tokens with wrong algorithm', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'ES256')
+    }).toThrow('JWT algorithm mismatch')
+  })
+
+  it('should reject malformed tokens', () => {
+    const { publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+    })
+
+    expect(() => {
+      verifyJwt('not-a-valid-token', publicKey, 'RS256')
+    }).toThrow('Invalid JWT format')
+  })
+
+  it('should reject tokens with invalid JSON in header', () => {
+    // Create a token with invalid header JSON
+    const invalidHeader = base64UrlEncode(Buffer.from('invalid-json'))
+    const validPayload = base64UrlEncode(
+      Buffer.from(JSON.stringify({ sub: 'user123' })),
+    )
+    const invalidToken = `${invalidHeader}.${validPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format')
+  })
+
+  it('should reject tokens with invalid JSON in payload', () => {
+    // Create a token with invalid payload JSON
+    const validHeader = base64UrlEncode(
+      Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })),
+    )
+    const invalidPayload = base64UrlEncode(Buffer.from('invalid-json'))
+    const invalidToken = `${validHeader}.${invalidPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format')
+  })
+
+  it('should validate nbf (not before) claim', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const futureTime = Math.floor(Date.now() / 1000) + 3600
+    const payload = {
+      sub: 'user123',
+      nbf: futureTime,
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow('JWT is not yet valid (nbf claim)')
+  })
+
+  it('should accept tokens with valid nbf claim', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const pastTime = Math.floor(Date.now() / 1000) - 3600
+    const payload = {
+      sub: 'user123',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      nbf: pastTime,
+    }
+
+    const token = signJwt(payload, privateKey, 'RS256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'RS256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should work with string keys', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const publicKeyPem = publicKey.export({
+      type: 'spki',
+      format: 'pem',
+    }) as string
+    const privateKeyPem = privateKey.export({
+      type: 'pkcs8',
+      format: 'pem',
+    }) as string
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKeyPem, 'RS256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKeyPem, 'RS256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should work with Buffer keys', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const publicKeyPem = Buffer.from(
+      publicKey.export({ type: 'spki', format: 'pem' }) as string,
+    )
+    const privateKeyPem = Buffer.from(
+      privateKey.export({ type: 'pkcs8', format: 'pem' }) as string,
+    )
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKeyPem, 'RS256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKeyPem, 'RS256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should detect algorithm from token header when not provided', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'RS256')
+
+    // Verify without specifying algorithm - should detect from header
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey)
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should reject tokens with unsupported algorithm', async () => {
+    const { publicKey } = await generateKeyPairAsync('rsa', {
+      modulusLength: 2048,
+    })
+
+    // Create a token with unsupported algorithm in header
+    const header = { alg: 'HS256', typ: 'JWT' }
+    const payload = { sub: 'user123' }
+    const invalidToken = assembleJwt(header, payload, 'signature')
+
+    expect(() => {
+      verifyJwt(invalidToken, publicKey)
+    }).toThrow('Unsupported JWT algorithm')
+  })
+})
+
+describe('JWT Parsing', () => {
+  it('should parse token into header, payload, and signature', () => {
+    const header = { alg: 'RS256', typ: 'JWT' }
+    const payload = { sub: 'user123' }
+    const signature = 'test-signature'
+    const token = assembleJwt(header, payload, signature)
+
+    const parsed = parseJwt(token)
+    expect(parsed.header).toEqual(header)
+    expect(parsed.payload).toEqual(payload)
+    expect(parsed.signature).toBe(signature)
+  })
+
+  it('should handle various claim types in payload', () => {
+    const header = { alg: 'RS256', typ: 'JWT' }
+    const payload = {
+      sub: 'user123',
+      iss: 'https://example.com',
+      aud: ['client1', 'client2'],
+      exp: 1234567890,
+      iat: 1234567890,
+      nbf: 1234567890,
+      jti: 'token-id',
+      customString: 'value',
+      customNumber: 42,
+      customBoolean: true,
+      customArray: [1, 2, 3],
+      customObject: { nested: 'value' },
+    }
+    const signature = 'test-signature'
+    const token = assembleJwt(header, payload, signature)
+
+    const parsed = parseJwt(token)
+    expect(parsed.payload).toEqual(payload)
+  })
+
+  it('should reject tokens with wrong number of parts', () => {
+    expect(() => {
+      parseJwt('not-enough-parts')
+    }).toThrow('Invalid JWT format')
+
+    expect(() => {
+      parseJwt('too.many.parts.here')
+    }).toThrow('Invalid JWT format')
+  })
+})
+
+describe('JWT Assembly', () => {
+  it('should assemble token from components', () => {
+    const header = { alg: 'RS256', typ: 'JWT', kid: 'key-123' }
+    const payload = { sub: 'user123', iss: 'https://example.com' }
+    const signature = 'encoded-signature'
+
+    const token = assembleJwt(header, payload, signature)
+    const parts = token.split('.')
+
+    expect(parts.length).toBe(3)
+    expect(parts[2]).toBe(signature)
+  })
+})
