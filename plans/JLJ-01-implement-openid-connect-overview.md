@@ -11,15 +11,17 @@ This plan outlines the transformation of the jlj2-users application into a fully
 
 ## Implementation Steps
 
-### Step 1: Project Foundation and Dependencies
+### Step 1: Project Foundation and Dependencies ✅
 Set up the foundational structure, install required dependencies, and configure the development environment for OIDC implementation.
 
-**Details:** See [JLJ-01-step-01-foundation.md](./JLJ-01-step-01-foundation.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-01-foundation.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-01-foundation.md)
 
-### Step 2: Core OIDC Configuration and Discovery
+### Step 2: Core OIDC Configuration and Discovery ✅
 Implement OIDC discovery endpoints and configuration management to expose provider capabilities and endpoints.
 
-**Details:** See [JLJ-01-step-02-discovery.md](./JLJ-01-step-02-discovery.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-02-discovery.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-02-discovery.md)
 
 ### Step 3: JWT Token Utilities with Node.js Crypto
 Create JWT token creation, signing, and verification utilities using Node.js crypto library for RS256/ES256 signing and encryption.

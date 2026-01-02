@@ -19,6 +19,7 @@ A step is considered complete when:
 
 | Date Completed | Step | Status | Link |
 |----------------|------|--------|------|
+| 2025-01-27 | JLJ-01 Step 2 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-02-discovery.md) |
 | 2025-01-27 | JLJ-01 Step 1 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-01-foundation.md) |
 
 *Table will be updated as steps are completed. Steps are listed in reverse chronological order (most recent first).*
