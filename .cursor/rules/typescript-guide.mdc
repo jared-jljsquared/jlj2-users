@@ -19,3 +19,5 @@ When generating or refactoring code the AI assistant must:
 *   **When creating new files and folders use `kabob-case-nameing-conventions`.**
 *   **When creating new interfaces prefer to place them in their own file.**
 *   **Do not use barrel files unless absolutely necessary.**
+*   **Prefer `rg` over `grep`.**
+*   **Prefer `pnpm` over `npm` for all package management tasks"**
