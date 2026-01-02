@@ -99,7 +99,12 @@ export const signJwt = (
       ? crypto.createPrivateKey(privateKey)
       : privateKey
 
-  const signature = sign.sign(keyObject, 'base64')
+  // For ES256, use IEEE P1363 format (RFC 7518 requirement) instead of default DER encoding
+  const signOptions =
+    algorithm === 'ES256'
+      ? { key: keyObject, dsaEncoding: 'ieee-p1363' as const }
+      : keyObject
+  const signature = sign.sign(signOptions, 'base64')
   const encodedSignature = base64UrlEncode(Buffer.from(signature, 'base64'))
 
   return `${encodedHeader}.${encodedPayload}.${encodedSignature}`
@@ -189,7 +194,12 @@ export const verifyJwt = (
       : publicKey
 
   try {
-    const isValid = verify.verify(keyObject, signatureBuffer)
+    // For ES256, use IEEE P1363 format (RFC 7518 requirement) instead of default DER encoding
+    const verifyOptions =
+      tokenAlgorithm === 'ES256'
+        ? { key: keyObject, dsaEncoding: 'ieee-p1363' as const }
+        : keyObject
+    const isValid = verify.verify(verifyOptions, signatureBuffer)
     if (!isValid) {
       throw new Error('Invalid JWT signature')
     }

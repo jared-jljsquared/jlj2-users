@@ -205,6 +205,171 @@ describe('JWT Signing and Verification', () => {
     expect(verifiedPayload.sub).toBe('user123')
   })
 
+  it('should include kid in header when provided for ES256', async () => {
+    const { privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'ES256', 'key-123')
+
+    const { header } = parseJwt(token)
+    expect(header.kid).toBe('key-123')
+  })
+
+  it('should reject expired ES256 tokens', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = {
+      sub: 'user123',
+      exp: Math.floor(Date.now() / 1000) - 3600, // Expired
+    }
+
+    const token = signJwt(payload, privateKey, 'ES256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'ES256')
+    }).toThrow('JWT has expired')
+  })
+
+  it('should reject ES256 tokens with invalid signature', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'ES256')
+
+    // Tamper with signature - create a valid-length but wrong signature
+    // ES256 signatures are 64 bytes (IEEE P1363 format), so we need a 64-byte invalid signature
+    const parts = token.split('.')
+    const invalidSignatureBuffer = Buffer.alloc(64, 0xff)
+    const invalidSignature = base64UrlEncode(invalidSignatureBuffer)
+    parts[2] = invalidSignature
+    const tamperedToken = parts.join('.')
+
+    expect(() => {
+      verifyJwt(tamperedToken, publicKey, 'ES256')
+    }).toThrow('Invalid JWT signature')
+  })
+
+  it('should reject ES256 tokens with wrong public key', async () => {
+    const { privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+    const { publicKey: wrongPublicKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'ES256')
+
+    expect(() => {
+      verifyJwt(token, wrongPublicKey, 'ES256')
+    }).toThrow('Invalid JWT signature')
+  })
+
+  it('should reject ES256 tokens with wrong algorithm', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'ES256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'RS256')
+    }).toThrow('JWT algorithm mismatch')
+  })
+
+  it('should validate nbf (not before) claim for ES256', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const futureTime = Math.floor(Date.now() / 1000) + 3600
+    const payload = {
+      sub: 'user123',
+      nbf: futureTime,
+    }
+
+    const token = signJwt(payload, privateKey, 'ES256')
+
+    expect(() => {
+      verifyJwt(token, publicKey, 'ES256')
+    }).toThrow('JWT is not yet valid (nbf claim)')
+  })
+
+  it('should accept ES256 tokens with valid nbf claim', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const pastTime = Math.floor(Date.now() / 1000) - 3600
+    const payload = {
+      sub: 'user123',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      nbf: pastTime,
+    }
+
+    const token = signJwt(payload, privateKey, 'ES256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey, 'ES256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should work with string keys for ES256', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const publicKeyPem = publicKey.export({
+      type: 'spki',
+      format: 'pem',
+    }) as string
+    const privateKeyPem = privateKey.export({
+      type: 'pkcs8',
+      format: 'pem',
+    }) as string
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKeyPem, 'ES256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKeyPem, 'ES256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should work with Buffer keys for ES256', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const publicKeyPem = Buffer.from(
+      publicKey.export({ type: 'spki', format: 'pem' }) as string,
+    )
+    const privateKeyPem = Buffer.from(
+      privateKey.export({ type: 'pkcs8', format: 'pem' }) as string,
+    )
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKeyPem, 'ES256')
+    const { payload: verifiedPayload } = verifyJwt(token, publicKeyPem, 'ES256')
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
+  it('should detect ES256 algorithm from token header when not provided', async () => {
+    const { publicKey, privateKey } = await generateKeyPairAsync('ec', {
+      namedCurve: 'prime256v1',
+    })
+
+    const payload = { sub: 'user123' }
+    const token = signJwt(payload, privateKey, 'ES256')
+
+    // Verify without specifying algorithm - should detect from header
+    const { payload: verifiedPayload } = verifyJwt(token, publicKey)
+    expect(verifiedPayload.sub).toBe('user123')
+  })
+
   it('should include kid in header when provided', async () => {
     const { privateKey } = await generateKeyPairAsync('rsa', {
       modulusLength: 2048,
