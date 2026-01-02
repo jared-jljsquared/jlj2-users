@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+import crypto, { timingSafeEqual } from 'node:crypto'
 import type { JwtHeader } from './types/jwt-header.ts'
 import type { JwtPayload } from './types/jwt-payload.ts'
 
@@ -293,9 +293,22 @@ export const verifyJwt = (
           : 'SHA512'
     const hmac = crypto.createHmac(hashAlgorithm, keyOrSecret)
     hmac.update(signatureInput)
-    const expectedSignature = base64UrlEncode(hmac.digest())
+    const expectedSignatureBuffer = hmac.digest()
 
-    if (signature !== expectedSignature) {
+    // Decode the signature from base64url to a buffer
+    let signatureBuffer: Buffer
+    try {
+      signatureBuffer = base64UrlDecode(signature)
+    } catch {
+      throw new Error('Invalid JWT signature')
+    }
+
+    // timingSafeEqual requires buffers of the same length
+    if (signatureBuffer.length !== expectedSignatureBuffer.length) {
+      throw new Error('Invalid JWT signature')
+    }
+
+    if (!timingSafeEqual(signatureBuffer, expectedSignatureBuffer)) {
       throw new Error('Invalid JWT signature')
     }
   } else if (tokenAlgorithm.startsWith('RS')) {
