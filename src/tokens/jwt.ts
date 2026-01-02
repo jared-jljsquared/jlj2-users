@@ -179,12 +179,47 @@ export const parseJwt = (
   const [encodedHeader, encodedPayload, encodedSignature] = parts
 
   try {
-    const header = JSON.parse(
+    const headerValue = JSON.parse(
       base64UrlDecode(encodedHeader).toString('utf-8'),
-    ) as Record<string, unknown>
-    const payload = JSON.parse(
+    )
+    const payloadValue = JSON.parse(
       base64UrlDecode(encodedPayload).toString('utf-8'),
-    ) as Record<string, unknown>
+    )
+
+    // Validate that header is a non-null object (not array, not primitive)
+    if (
+      headerValue === null ||
+      Array.isArray(headerValue) ||
+      typeof headerValue !== 'object'
+    ) {
+      throw new Error(
+        'Invalid JWT format: header must be a JSON object, got ' +
+          (headerValue === null
+            ? 'null'
+            : Array.isArray(headerValue)
+              ? 'array'
+              : typeof headerValue),
+      )
+    }
+
+    // Validate that payload is a non-null object (not array, not primitive)
+    if (
+      payloadValue === null ||
+      Array.isArray(payloadValue) ||
+      typeof payloadValue !== 'object'
+    ) {
+      throw new Error(
+        'Invalid JWT format: payload must be a JSON object, got ' +
+          (payloadValue === null
+            ? 'null'
+            : Array.isArray(payloadValue)
+              ? 'array'
+              : typeof payloadValue),
+      )
+    }
+
+    const header = headerValue as Record<string, unknown>
+    const payload = payloadValue as Record<string, unknown>
 
     return {
       header,
@@ -192,6 +227,13 @@ export const parseJwt = (
       signature: encodedSignature,
     }
   } catch (error) {
+    // Re-throw our validation errors as-is, wrap other errors
+    if (
+      error instanceof Error &&
+      error.message.startsWith('Invalid JWT format:')
+    ) {
+      throw error
+    }
     throw new Error(
       `Invalid JWT format: failed to parse token parts - ${error instanceof Error ? error.message : String(error)}`,
     )

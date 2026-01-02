@@ -934,6 +934,78 @@ describe('JWT Parsing', () => {
       parseJwt('too.many.parts.here')
     }).toThrow('Invalid JWT format')
   })
+
+  it('should reject tokens with null header', () => {
+    const nullHeader = base64UrlEncode(Buffer.from('null'))
+    const validPayload = base64UrlEncode(
+      Buffer.from(JSON.stringify({ sub: 'user123' })),
+    )
+    const invalidToken = `${nullHeader}.${validPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format: header must be a JSON object, got null')
+  })
+
+  it('should reject tokens with null payload', () => {
+    const validHeader = base64UrlEncode(
+      Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })),
+    )
+    const nullPayload = base64UrlEncode(Buffer.from('null'))
+    const invalidToken = `${validHeader}.${nullPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format: payload must be a JSON object, got null')
+  })
+
+  it('should reject tokens with array header', () => {
+    const arrayHeader = base64UrlEncode(Buffer.from('[1, 2, 3]'))
+    const validPayload = base64UrlEncode(
+      Buffer.from(JSON.stringify({ sub: 'user123' })),
+    )
+    const invalidToken = `${arrayHeader}.${validPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format: header must be a JSON object, got array')
+  })
+
+  it('should reject tokens with array payload', () => {
+    const validHeader = base64UrlEncode(
+      Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })),
+    )
+    const arrayPayload = base64UrlEncode(Buffer.from('[1, 2, 3]'))
+    const invalidToken = `${validHeader}.${arrayPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format: payload must be a JSON object, got array')
+  })
+
+  it('should reject tokens with primitive header', () => {
+    const stringHeader = base64UrlEncode(Buffer.from('"string"'))
+    const validPayload = base64UrlEncode(
+      Buffer.from(JSON.stringify({ sub: 'user123' })),
+    )
+    const invalidToken = `${stringHeader}.${validPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format: header must be a JSON object, got string')
+  })
+
+  it('should reject tokens with primitive payload', () => {
+    const validHeader = base64UrlEncode(
+      Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })),
+    )
+    const numberPayload = base64UrlEncode(Buffer.from('123'))
+    const invalidToken = `${validHeader}.${numberPayload}.signature`
+
+    expect(() => {
+      parseJwt(invalidToken)
+    }).toThrow('Invalid JWT format: payload must be a JSON object, got number')
+  })
 })
 
 describe('JWT Assembly', () => {
