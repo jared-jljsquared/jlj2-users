@@ -1,14 +1,7 @@
 import type { Context } from 'hono'
-
-interface JwksResponse {
-  keys: unknown[]
-}
+import { getJwks } from '../tokens/key-management.ts'
 
 export const handleJwks = (c: Context) => {
-  // Placeholder: Keys will be added in Step 4 (Key Management)
-  const jwks: JwksResponse = {
-    keys: [],
-  }
-
+  const jwks = getJwks()
   return c.json(jwks)
 }

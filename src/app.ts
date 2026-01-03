@@ -6,6 +6,7 @@ import { getOidcConfig } from './oidc/config.ts'
 import { handleDiscovery } from './oidc/discovery.ts'
 import { handleJwks } from './oidc/jwks.ts'
 import { log } from './plumbing/logger.ts'
+import { initializeKeys } from './tokens/key-management.ts'
 
 const { name, version } = info
 
@@ -18,6 +19,22 @@ try {
 } catch (error) {
   log({
     message: 'Failed to initialize OIDC configuration',
+    error: error instanceof Error ? error.message : String(error),
+  })
+  process.exit(1)
+}
+
+// Initialize key store (generate default key if none exist)
+try {
+  const defaultKey = initializeKeys()
+  log({
+    message: 'Key store initialized',
+    kid: defaultKey.kid,
+    algorithm: defaultKey.algorithm,
+  })
+} catch (error) {
+  log({
+    message: 'Failed to initialize key store',
     error: error instanceof Error ? error.message : String(error),
   })
   process.exit(1)
