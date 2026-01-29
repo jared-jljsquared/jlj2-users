@@ -1,4 +1,4 @@
-# Step 8: Token Endpoint Implementation
+# Step 10: Token Endpoint Implementation
 
 ## Overview
 Create the token endpoint that issues access tokens, ID tokens, and refresh tokens with proper validation and security. This endpoint handles the authorization code exchange and refresh token flows.

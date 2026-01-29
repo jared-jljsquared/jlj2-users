@@ -1,4 +1,4 @@
-# Step 7: Authorization Code Flow
+# Step 9: Authorization Code Flow
 
 ## Overview
 Implement the OAuth 2.0 authorization code flow including authorization endpoint, token endpoint, and redirect URI handling. This is the primary flow for OIDC authentication.

@@ -1,0 +1,23 @@
+# Dockerfile for ScyllaDB local development
+# Note: This is a wrapper around the official ScyllaDB image
+# For most use cases, docker-compose.yml is recommended instead
+
+FROM scylladb/scylla:latest
+
+# Set environment variables for development
+ENV SCYLLA_CLUSTER_NAME=jlj2-users-cluster
+ENV SCYLLA_DEVELOPER_MODE=1
+
+# Expose ports
+# 9042: CQL native protocol
+# 10000: REST API
+# 9160: Thrift API (legacy)
+EXPOSE 9042 10000 9160
+
+# Use development-friendly settings
+# --smp 1: Single CPU core
+# --memory 1G: 1GB memory
+# --overprovisioned 1: Allow overprovisioning for dev
+# --api-address 0.0.0.0: Allow API access from outside container
+CMD ["--smp", "1", "--memory", "1G", "--overprovisioned", "1", "--api-address", "0.0.0.0"]
+

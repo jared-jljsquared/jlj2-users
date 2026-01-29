@@ -1,0 +1,12 @@
+version: '3.8'
+
+# Development-specific overrides for docker-compose.yml
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  scylla:
+    environment:
+      - SCYLLA_DEVELOPER_MODE=1
+      - SCYLLA_CLUSTER_NAME=jlj2-users-dev-cluster
+    command: --smp 1 --memory 512M --overprovisioned 1 --api-address 0.0.0.0
+

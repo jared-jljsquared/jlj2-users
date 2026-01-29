@@ -1,4 +1,4 @@
-# Step 15: Security Hardening
+# Step 17: Security Hardening
 
 ## Overview
 Implement security best practices including PKCE support, state parameter validation, nonce handling, and rate limiting to protect against common OAuth 2.0 and OIDC attacks.

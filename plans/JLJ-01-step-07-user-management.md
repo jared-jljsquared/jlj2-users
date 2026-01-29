@@ -1,4 +1,4 @@
-# Step 5: User Management System
+# Step 7: User Management System
 
 ## Overview
 Build user registration, authentication, and profile management capabilities. This system will store user information and support both local authentication and federated identity linking.

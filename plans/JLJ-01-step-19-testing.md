@@ -1,4 +1,4 @@
-# Step 17: Testing and Validation
+# Step 19: Testing and Validation
 
 ## Overview
 Create comprehensive test suite and validate OIDC compliance using standard OIDC conformance tests. Ensure all flows work correctly and security measures are effective.

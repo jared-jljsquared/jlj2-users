@@ -1,4 +1,4 @@
-# Step 9-11: External Provider Integration
+# Step 11: External Provider Integration
 
 ## Overview
 Implement integration with major identity providers (Google, Microsoft, Facebook) to accept and validate their ID tokens. This allows users to authenticate using their existing accounts from these providers.
