@@ -1,4 +1,3 @@
-import type { Client } from 'cassandra-driver'
 import { getDatabaseClient } from '../client.ts'
 import { getDatabaseConfig } from '../config.ts'
 import { getAppliedMigrations } from './runner.ts'

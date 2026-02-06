@@ -2,7 +2,7 @@ import type { Client } from 'cassandra-driver'
 import { log } from '../../plumbing/logger.ts'
 import { getDatabaseClient } from '../client.ts'
 import { getDatabaseConfig } from '../config.ts'
-import type { Migration, MigrationHistory } from './types.ts'
+import type { Migration } from './types.ts'
 
 export const ensureMigrationHistory = async (client: Client): Promise<void> => {
   const config = getDatabaseConfig()

@@ -51,7 +51,10 @@ describe('Migration Runner', () => {
 
     it('should return list of applied migration versions', async () => {
       mockClient.execute = vi.fn().mockResolvedValue({
-        rows: [{ version: '001' }, { version: '002' }],
+        rows: [
+          { version: '001', rolled_back_at: null },
+          { version: '002', rolled_back_at: null },
+        ],
       })
 
       const applied = await getAppliedMigrations(mockClient)
@@ -114,8 +117,14 @@ describe('Migration Runner', () => {
         },
       ]
 
-      // Mock no applied migrations
-      mockClient.execute = vi.fn().mockResolvedValue({ rows: [] })
+      // Mock: ensureMigrationHistory calls (keyspace + table), then getAppliedMigrations, then recordMigration calls
+      mockClient.execute = vi
+        .fn()
+        .mockResolvedValueOnce({ rows: [] }) // keyspace creation
+        .mockResolvedValueOnce({ rows: [] }) // table creation
+        .mockResolvedValueOnce({ rows: [] }) // getAppliedMigrations - no applied migrations
+        .mockResolvedValueOnce({ rows: [] }) // recordMigration for 001
+        .mockResolvedValueOnce({ rows: [] }) // recordMigration for 002
 
       await runMigrations(migrations, 'up')
 
@@ -141,11 +150,15 @@ describe('Migration Runner', () => {
         },
       ]
 
-      // Mock migration 001 as already applied
+      // Mock: ensureMigrationHistory calls (keyspace + table), then getAppliedMigrations with 001 applied, then recordMigration for 002
       mockClient.execute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ version: '001' }] })
-        .mockResolvedValue({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] }) // keyspace creation
+        .mockResolvedValueOnce({ rows: [] }) // table creation
+        .mockResolvedValueOnce({
+          rows: [{ version: '001', rolled_back_at: null }],
+        }) // getAppliedMigrations - 001 is applied
+        .mockResolvedValueOnce({ rows: [] }) // recordMigration for 002
 
       await runMigrations(migrations, 'up')
 
