@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS jlj2_users.accounts (
   is_active BOOLEAN,
   last_login_at TIMESTAMP,
   PRIMARY KEY (account_id)
-) WITH CLUSTERING ORDER BY (account_id ASC);
+);

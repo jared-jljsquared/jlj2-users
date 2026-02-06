@@ -21,7 +21,8 @@ Create an abstraction layer for user storage (initially in-memory, later can be 
 ### 5.3 User Registration
 Implement user registration with:
 - Email validation
-- Password hashing using Node.js crypto (scrypt or bcrypt)
+- Password hashing using Node.js crypto library (scrypt)
+- Salt generation using nanoid
 - Duplicate email checking
 - User ID generation
 
@@ -69,34 +70,42 @@ export interface LinkedProvider {
 }
 ```
 
-### Example: Password Hashing with Node.js Crypto
+### Example: Password Hashing with Node.js Crypto and nanoid
 ```typescript
 // src/users/service.ts
 import crypto from 'crypto';
+import { nanoid } from 'nanoid';
 
 export const hashPassword = (password: string): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const salt = crypto.randomBytes(16).toString('hex');
+    // Generate salt using nanoid for URL-safe, unique identifiers
+    const salt = nanoid();
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
       if (err) reject(err);
-      resolve(`${salt}:${derivedKey.toString('hex')}`);
+      // Store salt and hash separately in database
+      resolve(derivedKey.toString('hex'));
     });
   });
 };
 
 export const verifyPassword = (
   password: string,
-  hash: string
+  hash: string,
+  salt: string
 ): Promise<boolean> => {
   return new Promise((resolve, reject) => {
-    const [salt, key] = hash.split(':');
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
       if (err) reject(err);
-      resolve(key === derivedKey.toString('hex'));
+      resolve(hash === derivedKey.toString('hex'));
     });
   });
 };
 ```
+
+**Note**: 
+- Password hashing uses Node.js built-in `crypto` module with `scrypt` algorithm
+- Salt generation uses `nanoid` for URL-safe, unique salt values
+- Salt and password digest are stored separately in the database (`password_salt` and `password_digest` columns)
 
 ### Example: User Registration
 ```typescript
@@ -197,37 +206,50 @@ export const registerUser = async (
 ```typescript
 // src/users/__tests__/password.test.ts
 import { describe, it, expect } from 'vitest';
+import { nanoid } from 'nanoid';
 import { hashPassword, verifyPassword } from '../service.ts';
 
 describe('Password Hashing', () => {
   it('should hash passwords correctly', async () => {
     const password = 'test-password-123';
-    const hash = await hashPassword(password);
+    const { hash, salt } = await hashPassword(password);
     
-    expect(hash).toContain(':');
-    expect(hash.split(':').length).toBe(2);
+    expect(hash).toBeDefined();
+    expect(salt).toBeDefined();
+    expect(typeof hash).toBe('string');
+    expect(typeof salt).toBe('string');
   });
   
   it('should produce different hashes for same password', async () => {
     const password = 'test-password';
-    const hash1 = await hashPassword(password);
-    const hash2 = await hashPassword(password);
+    const { hash: hash1, salt: salt1 } = await hashPassword(password);
+    const { hash: hash2, salt: salt2 } = await hashPassword(password);
     
     expect(hash1).not.toBe(hash2); // Different salts
+    expect(salt1).not.toBe(salt2); // Different nanoid-generated salts
   });
   
   it('should verify correct password', async () => {
     const password = 'test-password';
-    const hash = await hashPassword(password);
-    const isValid = await verifyPassword(password, hash);
+    const { hash, salt } = await hashPassword(password);
+    const isValid = await verifyPassword(password, hash, salt);
     
     expect(isValid).toBe(true);
   });
   
   it('should reject incorrect password', async () => {
     const password = 'test-password';
-    const hash = await hashPassword(password);
-    const isValid = await verifyPassword('wrong-password', hash);
+    const { hash, salt } = await hashPassword(password);
+    const isValid = await verifyPassword('wrong-password', hash, salt);
+    
+    expect(isValid).toBe(false);
+  });
+  
+  it('should reject password with incorrect salt', async () => {
+    const password = 'test-password';
+    const { hash } = await hashPassword(password);
+    const wrongSalt = nanoid();
+    const isValid = await verifyPassword(password, hash, wrongSalt);
     
     expect(isValid).toBe(false);
   });
