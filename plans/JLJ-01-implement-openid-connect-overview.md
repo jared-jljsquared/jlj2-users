@@ -41,10 +41,11 @@ Set up ScyllaDB connection, connection pooling, and database client initializati
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-05-database-connection.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-05-database-connection.md)
 
-### Step 6: Database Migrations
+### Step 6: Database Migrations ✅
 Implement database migration system for creating and managing database schema (keyspaces, tables, indexes). Support versioned migrations and rollback capabilities.
 
-**Details:** See [JLJ-01-step-06-database-migrations.md](./JLJ-01-step-06-database-migrations.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-06-database-migrations.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-06-database-migrations.md)
 
 ### Step 7: User Management System
 Build user registration, authentication, and profile management capabilities.

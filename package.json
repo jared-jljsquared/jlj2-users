@@ -16,6 +16,7 @@
     "test:integration": "playwright test",
     "test:all": "pnpm test && pnpm test:integration",
     "type-check": "tsc --noEmit",
+    "migrate": "tsx src/database/migrations/cli.ts",
     "prepare": "husky"
   },
   "keywords": [
