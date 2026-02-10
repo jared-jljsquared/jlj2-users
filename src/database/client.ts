@@ -23,14 +23,17 @@ export const isDatabaseEnabledForEnv = (): boolean => {
   return true
 }
 
-const createCassandraClient = (): CassandraClient => {
+const createCassandraClient = (options?: {
+  skipKeyspace?: boolean
+}): CassandraClient => {
   const config = getDatabaseConfig()
   const contactPoints = config.hosts.map((host) => `${host}:${config.port}`)
 
   const clientOptions: ClientOptions = {
     contactPoints,
     localDataCenter: config.localDataCenter,
-    keyspace: config.keyspace,
+    // Only set keyspace if not skipping (for migrations, we connect without keyspace first)
+    keyspace: options?.skipKeyspace ? undefined : config.keyspace,
     credentials:
       config.username && config.password
         ? {
@@ -38,6 +41,16 @@ const createCassandraClient = (): CassandraClient => {
             password: config.password,
           }
         : undefined,
+    sslOptions: config.isSslEnabled
+      ? {
+          // Enable SSL/TLS connection
+          // rejectUnauthorized defaults to true for security
+          rejectUnauthorized: true,
+        }
+      : undefined,
+    socketOptions: {
+      connectTimeout: config.connectTimeoutMs,
+    },
   }
 
   const client = new Client(clientOptions)
@@ -55,7 +68,9 @@ export const getDatabaseClient = (): CassandraClient => {
   return databaseClient
 }
 
-export const initializeDatabase = async (): Promise<void> => {
+export const initializeDatabase = async (options?: {
+  skipKeyspace?: boolean
+}): Promise<void> => {
   if (!isDatabaseEnabledForEnv()) {
     log('Database initialization skipped for current environment')
     return
@@ -84,7 +99,9 @@ export const initializeDatabase = async (): Promise<void> => {
     attempt += 1
 
     try {
-      databaseClient = createCassandraClient()
+      databaseClient = createCassandraClient({
+        skipKeyspace: options?.skipKeyspace,
+      })
       await databaseClient.connect()
 
       const config = getDatabaseConfig()
@@ -93,7 +110,9 @@ export const initializeDatabase = async (): Promise<void> => {
       log({
         message: 'Database connection established',
         hosts: contactPoints,
-        keyspace: config.keyspace,
+        keyspace: options?.skipKeyspace
+          ? '(none - for migrations)'
+          : config.keyspace,
         localDataCenter: config.localDataCenter,
         attempt,
       })

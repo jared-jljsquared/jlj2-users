@@ -9,7 +9,8 @@ const command = process.argv[2]
 
 const main = async (): Promise<void> => {
   try {
-    await initializeDatabase()
+    // Connect without keyspace to allow migrations to create it
+    await initializeDatabase({ skipKeyspace: true })
 
     const migrations = loadMigrations()
 

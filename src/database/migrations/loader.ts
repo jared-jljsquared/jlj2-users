@@ -8,6 +8,7 @@ import { migration as migration006 } from './migrations/006-create-identities-ta
 import { migration as migration007 } from './migrations/007-create-identity-accounts-table.ts'
 import { migration as migration008 } from './migrations/008-create-account-identities-table.ts'
 import { migration as migration009 } from './migrations/009-create-provider-accounts-table.ts'
+import { migration as migration010 } from './migrations/010-create-contact-methods-by-account-table.ts'
 import type { Migration } from './types.ts'
 
 export const loadMigrations = (): Migration[] => {
@@ -21,5 +22,6 @@ export const loadMigrations = (): Migration[] => {
     migration007,
     migration008,
     migration009,
+    migration010,
   ].sort((a, b) => a.version.localeCompare(b.version))
 }

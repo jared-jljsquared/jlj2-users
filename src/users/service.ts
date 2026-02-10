@@ -13,9 +13,14 @@ import {
   createUser,
   findContactMethod,
   findContactMethodById,
+  findProviderAccount,
+  findProviderAccountsByAccountId,
   findUserByEmail,
   findUserById,
+  linkProviderAccount,
+  unlinkProviderAccount,
   updateLastLogin,
+  updateUser,
 } from './storage.ts'
 import type {
   MagicLinkRequestInput,
@@ -23,6 +28,7 @@ import type {
   User,
   UserAuthenticationInput,
   UserRegistrationInput,
+  UserUpdateInput,
 } from './types/user.ts'
 
 /**
@@ -184,17 +190,27 @@ export const requestMagicLink = async (
     )
 
     // If it's a phone contact, we need to add it separately
+    // Note: This should ideally use a helper function from storage.ts to maintain consistency
+    // For now, we'll insert into both tables directly
     if (contactType === 'phone') {
       const client = getDatabaseClient()
       const keyspace = getDatabaseConfig().keyspace
       const newContactId = randomUUID()
       const now = new Date()
 
+      // Insert into both tables to maintain consistency
       await client.execute(
         `INSERT INTO ${keyspace}.contact_methods 
-         (account_id, contact_id, contact_type, contact_value, is_primary, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [user.sub, newContactId, 'phone', contactValue, true, now, now],
+         (account_id, contact_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [user.sub, newContactId, 'phone', contactValue, true, null, now, now],
+      )
+      // Insert into lookup table for efficient account-based queries
+      await client.execute(
+        `INSERT INTO ${keyspace}.contact_methods_by_account 
+         (account_id, contact_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [user.sub, newContactId, 'phone', contactValue, true, null, now, now],
       )
 
       contactId = newContactId
@@ -215,13 +231,13 @@ export const requestMagicLink = async (
   await storeMagicLinkToken(contactId, token, 15) // 15 minute expiration
 
   // TODO: Send email or SMS with magic link
-  // For now, we'll just log it (in production, integrate with email/SMS service)
+  // In production, integrate with email/SMS service to send the token
+  // Security: Never log authentication tokens or contact values (email/phone)
   log({
     message: 'Magic link generated',
     contactId,
     contactType,
-    contactValue,
-    token, // In production, don't log the token
+    // Note: token and contactValue are intentionally excluded for security
   })
 
   return { contactId, contactType }
@@ -268,4 +284,91 @@ export const authenticateWithMagicLink = async (
  */
 export const getUserById = async (sub: string): Promise<User | null> => {
   return await findUserById(sub)
+}
+
+/**
+ * Update user profile
+ */
+export const updateUserProfile = async (
+  sub: string,
+  input: UserUpdateInput,
+): Promise<User> => {
+  // Check if user exists
+  const existingUser = await findUserById(sub)
+  if (!existingUser) {
+    throw new Error('User not found')
+  }
+
+  // Update user
+  return await updateUser(sub, input)
+}
+
+/**
+ * Link a provider account to a contact method
+ */
+export const linkProvider = async (
+  accountId: string,
+  contactId: string,
+  provider: 'google' | 'microsoft' | 'facebook',
+  providerSub: string,
+): Promise<{ provider: string; providerSub: string; linkedAt: Date }> => {
+  // Check if provider account already exists
+  const existing = await findProviderAccount(provider, providerSub)
+  if (existing) {
+    throw new Error('Provider account already linked')
+  }
+
+  // Link provider account
+  const providerAccount = await linkProviderAccount({
+    provider,
+    provider_sub: providerSub,
+    contact_id: contactId,
+    account_id: accountId,
+  })
+
+  return {
+    provider: providerAccount.provider,
+    providerSub: providerAccount.provider_sub,
+    linkedAt: providerAccount.linked_at,
+  }
+}
+
+/**
+ * Get all linked provider accounts for a user
+ */
+export const getLinkedProviders = async (
+  accountId: string,
+): Promise<
+  Array<{
+    provider: string
+    providerSub: string
+    contactId: string
+    linkedAt: Date
+  }>
+> => {
+  const providerAccounts = await findProviderAccountsByAccountId(accountId)
+
+  return providerAccounts.map((pa) => ({
+    provider: pa.provider,
+    providerSub: pa.provider_sub,
+    contactId: pa.contact_id,
+    linkedAt: pa.linked_at,
+  }))
+}
+
+/**
+ * Unlink a provider account
+ */
+export const unlinkProvider = async (
+  provider: 'google' | 'microsoft' | 'facebook',
+  providerSub: string,
+): Promise<void> => {
+  // Check if provider account exists
+  const existing = await findProviderAccount(provider, providerSub)
+  if (!existing) {
+    throw new Error('Provider account not found')
+  }
+
+  // Unlink provider account
+  await unlinkProviderAccount(provider, providerSub)
 }

@@ -48,3 +48,9 @@ export interface UserUpdateInput {
   familyName?: string
   picture?: string
 }
+
+export interface ProviderLinkInput {
+  contactId: string
+  provider: 'google' | 'microsoft' | 'facebook'
+  providerSub: string
+}

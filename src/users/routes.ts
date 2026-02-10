@@ -2,15 +2,21 @@ import { Hono } from 'hono'
 import {
   authenticateUser,
   authenticateWithMagicLink,
+  getLinkedProviders,
   getUserById,
+  linkProvider,
   registerUser,
   requestMagicLink,
+  unlinkProvider,
+  updateUserProfile,
 } from './service.ts'
 import type {
   MagicLinkRequestInput,
   MagicLinkVerifyInput,
+  ProviderLinkInput,
   UserAuthenticationInput,
   UserRegistrationInput,
+  UserUpdateInput,
 } from './types/user.ts'
 
 const users = new Hono()
@@ -136,34 +142,88 @@ users.get('/:sub', async (c) => {
 })
 
 /**
+ * PUT /users/:sub
+ * Update user profile
+ */
+users.put('/:sub', async (c) => {
+  try {
+    const sub = c.req.param('sub')
+
+    if (!sub) {
+      return c.json({ error: 'User ID is required' }, 400)
+    }
+
+    const body = (await c.req.json()) as UserUpdateInput
+
+    const user = await updateUserProfile(sub, body)
+
+    return c.json({
+      sub: user.sub,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      name: user.name,
+      givenName: user.givenName,
+      familyName: user.familyName,
+      picture: user.picture,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+      isActive: user.isActive,
+      lastLoginAt: user.lastLoginAt?.toISOString(),
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'User not found') {
+        return c.json({ error: error.message }, 404)
+      }
+    }
+    return c.json({ error: 'Failed to update user' }, 500)
+  }
+})
+
+/**
  * POST /users/magic-link/request
  * Request a magic link for passwordless login
+ * Supports both email and phone (SMS) magic links
  */
 users.post('/magic-link/request', async (c) => {
   try {
     const body = (await c.req.json()) as MagicLinkRequestInput
 
-    if (!body.email) {
-      return c.json({ error: 'Email is required' }, 400)
+    if (!body.email && !body.phone) {
+      return c.json({ error: 'Either email or phone is required' }, 400)
+    }
+    if (body.email && body.phone) {
+      return c.json({ error: 'Provide either email or phone, not both' }, 400)
     }
 
-    await requestMagicLink(body)
+    const { contactId, contactType } = await requestMagicLink(body)
 
     // Don't reveal if user exists or not (security best practice)
     return c.json({
       message:
-        'If an account exists with this email, a magic link has been sent',
+        'If an account exists with this contact method, a magic link has been sent',
+      contactId,
+      contactType,
     })
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === 'Invalid email address') {
         return c.json({ error: error.message }, 400)
       }
+      if (error.message === 'Invalid phone number') {
+        return c.json({ error: error.message }, 400)
+      }
+      if (
+        error.message === 'Either email or phone is required' ||
+        error.message === 'Provide either email or phone, not both'
+      ) {
+        return c.json({ error: error.message }, 400)
+      }
     }
     // Don't reveal if user exists or not
     return c.json({
       message:
-        'If an account exists with this email, a magic link has been sent',
+        'If an account exists with this contact method, a magic link has been sent',
     })
   }
 })
@@ -205,6 +265,133 @@ users.post('/magic-link/verify', async (c) => {
       }
     }
     return c.json({ error: 'Magic link verification failed' }, 500)
+  }
+})
+
+/**
+ * GET /users/:sub/providers
+ * Get all linked provider accounts for a user
+ */
+users.get('/:sub/providers', async (c) => {
+  try {
+    const sub = c.req.param('sub')
+
+    if (!sub) {
+      return c.json({ error: 'User ID is required' }, 400)
+    }
+
+    const providers = await getLinkedProviders(sub)
+
+    return c.json({
+      providers: providers.map((p) => ({
+        provider: p.provider,
+        providerSub: p.providerSub,
+        contactId: p.contactId,
+        linkedAt: p.linkedAt.toISOString(),
+      })),
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'User not found') {
+        return c.json({ error: error.message }, 404)
+      }
+    }
+    return c.json({ error: 'Failed to retrieve linked providers' }, 500)
+  }
+})
+
+/**
+ * POST /users/:sub/providers
+ * Link a provider account to a user
+ */
+users.post('/:sub/providers', async (c) => {
+  try {
+    const sub = c.req.param('sub')
+
+    if (!sub) {
+      return c.json({ error: 'User ID is required' }, 400)
+    }
+
+    const body = (await c.req.json()) as ProviderLinkInput
+
+    if (!body.contactId || !body.provider || !body.providerSub) {
+      return c.json(
+        {
+          error: 'contactId, provider, and providerSub are required',
+        },
+        400,
+      )
+    }
+
+    const result = await linkProvider(
+      sub,
+      body.contactId,
+      body.provider,
+      body.providerSub,
+    )
+
+    return c.json(
+      {
+        provider: result.provider,
+        providerSub: result.providerSub,
+        linkedAt: result.linkedAt.toISOString(),
+      },
+      201,
+    )
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Provider account already linked') {
+        return c.json({ error: error.message }, 409)
+      }
+      if (error.message === 'User not found') {
+        return c.json({ error: error.message }, 404)
+      }
+    }
+    return c.json({ error: 'Failed to link provider account' }, 500)
+  }
+})
+
+/**
+ * DELETE /users/:sub/providers/:provider/:providerSub
+ * Unlink a provider account from a user
+ */
+users.delete('/:sub/providers/:provider/:providerSub', async (c) => {
+  try {
+    const sub = c.req.param('sub')
+    const provider = c.req.param('provider') as
+      | 'google'
+      | 'microsoft'
+      | 'facebook'
+    const providerSub = c.req.param('providerSub')
+
+    if (!sub || !provider || !providerSub) {
+      return c.json(
+        { error: 'User ID, provider, and providerSub are required' },
+        400,
+      )
+    }
+
+    if (
+      provider !== 'google' &&
+      provider !== 'microsoft' &&
+      provider !== 'facebook'
+    ) {
+      return c.json(
+        { error: 'Invalid provider. Must be google, microsoft, or facebook' },
+        400,
+      )
+    }
+
+    await unlinkProvider(provider, providerSub)
+
+    return c.json({ message: 'Provider account unlinked successfully' })
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Provider account not found') {
+        return c.json({ error: error.message }, 404)
+      }
+    }
+    return c.json({ error: 'Failed to unlink provider account' }, 500)
   }
 })
 

@@ -66,6 +66,8 @@ export const storeMagicLinkToken = async (
 
 /**
  * Verify and consume a magic link token
+ * Uses a lightweight transaction (LWT) to atomically check and set the used flag
+ * This prevents race conditions where multiple concurrent requests could consume the same token
  */
 export const verifyMagicLinkToken = async (
   contactId: string,
@@ -74,7 +76,7 @@ export const verifyMagicLinkToken = async (
   const client = getClient()
   const keyspace = getKeyspace()
 
-  // Get token
+  // First, get token to check expiration
   const result = await client.execute(
     `SELECT magic_token, expires_at, used FROM ${keyspace}.magic_link_tokens 
      WHERE contact_id = ? AND magic_token = ?`,
@@ -87,27 +89,28 @@ export const verifyMagicLinkToken = async (
 
   const row = result.rows[0]
   const expiresAt = row.expires_at as Date
-  const used = row.used as boolean
 
   // Check if token is expired
   if (expiresAt < new Date()) {
     return false
   }
 
-  // Check if token has already been used
-  if (used) {
-    return false
-  }
-
-  // Mark token as used
-  await client.execute(
+  // Atomically check if used = false and set used = true in a single operation
+  // This uses a lightweight transaction (LWT) to prevent race conditions
+  const updateResult = await client.execute(
     `UPDATE ${keyspace}.magic_link_tokens 
      SET used = ?
-     WHERE contact_id = ? AND magic_token = ?`,
-    [true, contactId, token],
+     WHERE contact_id = ? AND magic_token = ?
+     IF used = ?`,
+    [true, contactId, token, false],
   )
 
-  return true
+  // Check if the conditional update was applied
+  // In cassandra-driver, conditional updates return a result with an 'applied' field
+  // If the condition was not met (used was already true), applied will be false
+  const wasApplied = updateResult.wasApplied()
+
+  return wasApplied
 }
 
 /**
