@@ -7,6 +7,7 @@ import { migration as migration005 } from './migrations/005-create-magic-link-to
 import { migration as migration006 } from './migrations/006-create-identities-table.ts'
 import { migration as migration007 } from './migrations/007-create-identity-accounts-table.ts'
 import { migration as migration008 } from './migrations/008-create-account-identities-table.ts'
+import { migration as migration009 } from './migrations/009-create-provider-accounts-table.ts'
 import type { Migration } from './types.ts'
 
 export const loadMigrations = (): Migration[] => {
@@ -19,5 +20,6 @@ export const loadMigrations = (): Migration[] => {
     migration006,
     migration007,
     migration008,
+    migration009,
   ].sort((a, b) => a.version.localeCompare(b.version))
 }

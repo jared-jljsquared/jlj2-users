@@ -121,6 +121,52 @@ CREATE TABLE jlj2_users.contact_methods (
 - **DO NOT use secondary indexes** - They are not recommended in ScyllaDB/Cassandra as they create hidden tables and can cause severe performance issues.
 - If you need to query by `account_id`, create a separate denormalized lookup table `contact_methods_by_account` with `PRIMARY KEY (account_id, contact_id)`
 
+### 3. Provider Accounts Table
+
+**Partition Key**: `provider` (TEXT)  
+**Clustering Key**: `provider_sub` (TEXT)
+
+**Purpose**: Store external provider account links (Google, Microsoft, Facebook) linked to specific contact methods.
+
+**Schema**:
+```cql
+CREATE TABLE jlj2_users.provider_accounts (
+  provider TEXT,        -- 'google', 'microsoft', 'facebook'
+  provider_sub TEXT,    -- Provider's subject identifier (their unique user ID)
+  contact_id UUID,      -- Links to contact_methods.contact_id
+  account_id UUID,      -- Denormalized for query efficiency (can be derived from contact_id)
+  linked_at TIMESTAMP,
+  created_at TIMESTAMP,
+  PRIMARY KEY (provider, provider_sub)
+) WITH CLUSTERING ORDER BY (provider_sub ASC)
+```
+
+**Fields**:
+- `provider`: Provider name ('google', 'microsoft', 'facebook') - partition key
+- `provider_sub`: Provider's subject identifier (their unique user ID) - clustering key
+- `contact_id`: Links to `contact_methods.contact_id` - the specific contact method this provider is associated with
+- `account_id`: Denormalized account ID for query efficiency (can be derived from `contact_id` via `contact_methods`)
+- `linked_at`: Timestamp when the provider account was linked
+- `created_at`: Record creation timestamp
+
+**Relationship**:
+- Links to `contact_methods` via `contact_id` (not directly to `accounts`)
+- This allows a provider account to be associated with a specific contact method (email/phone)
+- A user can have multiple provider accounts linked to different contact methods
+- The `account_id` is denormalized for efficient queries without requiring a join
+
+**Query Implications**:
+- Queries must start with `provider` (the partition key)
+- Efficient lookups: `WHERE provider = 'google' AND provider_sub = '123456'`
+- To find all providers for a contact method, you would need to scan all providers or maintain a reverse lookup table
+- To find all providers for an account, query by `account_id` (denormalized) or scan and filter
+
+**Access Patterns**:
+1. **Find account by provider**: `SELECT contact_id, account_id FROM provider_accounts WHERE provider = ? AND provider_sub = ?`
+2. **Get contact method from provider**: Use `contact_id` to query `contact_methods`
+3. **List all providers for an account**: `SELECT * FROM provider_accounts WHERE account_id = ? ALLOW FILTERING` (or maintain reverse lookup table)
+
+**Note**: The `account_id` is denormalized for query efficiency. While it can be derived from `contact_id` via `contact_methods`, storing it directly avoids a second query when looking up accounts by provider.
 
 ## Data Consistency
 
@@ -177,8 +223,9 @@ APPLY BATCH;
 1. Create keyspace (if not exists)
 2. Create `accounts` table (with partition key `account_id` and clustering key `is_active`)
 3. Create `contact_methods` table (with partition key `contact_type` and clustering keys `is_primary`, `contact_value`, `contact_id`)
-4. If account-based lookups are needed, create `contact_methods_by_account` lookup table with `PRIMARY KEY (account_id, contact_id)`
-5. If username lookups are needed, create `accounts_by_username` lookup table with `PRIMARY KEY (username)`
+4. Create `provider_accounts` table (with partition key `provider` and clustering key `provider_sub`)
+5. If account-based lookups are needed, create `contact_methods_by_account` lookup table with `PRIMARY KEY (account_id, contact_id)`
+6. If username lookups are needed, create `accounts_by_username` lookup table with `PRIMARY KEY (username)`
 
 ## Future Enhancements
 
