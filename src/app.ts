@@ -9,6 +9,7 @@ import { handleDiscovery } from './oidc/discovery.ts'
 import { handleJwks } from './oidc/jwks.ts'
 import { log } from './plumbing/logger.ts'
 import { initializeKeys } from './tokens/key-management.ts'
+import users from './users/routes.ts'
 
 const { name, version } = info
 
@@ -42,6 +43,9 @@ app.get('/health', async (c) => {
 // OIDC Discovery endpoints
 app.get('/.well-known/openid-configuration', handleDiscovery)
 app.get('/.well-known/jwks.json', handleJwks)
+
+// User management endpoints
+app.route('/users', users)
 
 const start = async (): Promise<void> => {
   // Validate OIDC configuration on startup
