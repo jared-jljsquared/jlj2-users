@@ -105,7 +105,7 @@ export const findUserById = async (accountId: string): Promise<User | null> => {
     last_login_at: accountRow.last_login_at as Date | undefined,
   }
 
-  // Get primary email contact using the lookup table for efficient querying
+  // Get contacts using the lookup table for efficient querying
   const contactMethodsResult = await client.execute(
     `SELECT * FROM ${keyspace}.contact_methods_by_account 
      WHERE account_id = ?`,
@@ -114,32 +114,17 @@ export const findUserById = async (accountId: string): Promise<User | null> => {
 
   let email = ''
   let emailVerified = false
-  let primaryContact: ContactMethod | null = null
 
-  // Find the primary email contact
+  // Find the primary email contact if present (accounts may be phone-only)
   for (const row of contactMethodsResult.rows) {
     if (row.contact_type === 'email' && row.is_primary === true) {
-      primaryContact = {
-        account_id: String(row.account_id),
-        contact_id: String(row.contact_id),
-        contact_type: row.contact_type as 'email',
-        contact_value: row.contact_value as string,
-        is_primary: row.is_primary as boolean,
-        verified_at: row.verified_at as Date | undefined,
-        created_at: row.created_at as Date,
-        updated_at: row.updated_at as Date,
-      }
-      email = primaryContact.contact_value
-      emailVerified = primaryContact.verified_at != null
+      email = row.contact_value as string
+      emailVerified = row.verified_at != null
       break
     }
   }
 
-  if (!primaryContact) {
-    // No email found, return null
-    return null
-  }
-
+  // Account exists; return user even when no email (e.g. phone-only magic link accounts)
   return {
     sub: account.account_id,
     email,

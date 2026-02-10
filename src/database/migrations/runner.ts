@@ -41,6 +41,29 @@ export const getAppliedMigrations = async (
     .map((row) => row.version as string)
 }
 
+export interface MigrationHistoryRow {
+  version: string
+  applied_at: Date
+  rolled_back_at: Date | null
+}
+
+/**
+ * Fetch all migration history rows (including rolled-back) for status display.
+ */
+export const getAllMigrationHistory = async (
+  client: Client,
+): Promise<MigrationHistoryRow[]> => {
+  const config = getDatabaseConfig()
+  const result = await client.execute(
+    `SELECT version, applied_at, rolled_back_at FROM ${config.keyspace}.migration_history`,
+  )
+  return result.rows.map((row) => ({
+    version: row.version as string,
+    applied_at: row.applied_at as Date,
+    rolled_back_at: row.rolled_back_at as Date | null,
+  }))
+}
+
 export const recordMigration = async (
   client: Client,
   migration: Migration,
