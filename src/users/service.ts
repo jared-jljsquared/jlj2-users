@@ -8,6 +8,7 @@ import {
 } from './magic-link.ts'
 import { hashPassword, verifyPassword } from './password.ts'
 import {
+  createAccount,
   createUser,
   findContactMethod,
   findContactMethodById,
@@ -15,8 +16,8 @@ import {
   findProviderAccountsByAccountId,
   findUserByEmail,
   findUserById,
-  insertContactMethod,
   linkProviderAccount,
+  tryInsertContactMethod,
   unlinkProviderAccount,
   updateLastLogin,
   updateUser,
@@ -178,21 +179,14 @@ export const requestMagicLink = async (
   // If contact method doesn't exist, create account and contact method
   let contactId: string
   if (!contactMethod) {
-    // Create passwordless account for magic link authentication
-    const user = await createUser(
-      {
-        email: contactType === 'email' ? contactValue : undefined,
-      },
-      undefined,
-      undefined,
-    )
+    const newAccountId = randomUUID()
+    const newContactId = randomUUID()
+    const now = new Date()
 
-    // If it's a phone contact, we need to add it separately (createUser only inserts email)
     if (contactType === 'phone') {
-      const newContactId = randomUUID()
-      const now = new Date()
-      await insertContactMethod(
-        user.sub,
+      // Claim phone contact first (LWT) to prevent race, then create account
+      const applied = await tryInsertContactMethod(
+        newAccountId,
         newContactId,
         'phone',
         contactValue,
@@ -201,14 +195,33 @@ export const requestMagicLink = async (
         now,
         now,
       )
-      contactId = newContactId
-    } else {
-      // Find the email contact method we just created
-      const newContactMethod = await findContactMethod('email', contactValue)
-      if (!newContactMethod) {
-        throw new Error('Failed to create contact method')
+      if (applied) {
+        await createAccount(newAccountId, {})
       }
-      contactId = newContactMethod.contact_id
+      const found = await findContactMethod('phone', contactValue)
+      if (!found) throw new Error('Failed to create contact method')
+      contactId = found.contact_id
+    } else {
+      // Email: createUser uses tryInsertContactMethod internally
+      try {
+        await createUser({ email: contactValue }, undefined, undefined)
+        const newContactMethod = await findContactMethod('email', contactValue)
+        if (!newContactMethod)
+          throw new Error('Failed to create contact method')
+        contactId = newContactMethod.contact_id
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === 'User already exists with this email'
+        ) {
+          // Race: another request created it; use existing contact
+          const existing = await findContactMethod('email', contactValue)
+          if (!existing) throw error
+          contactId = existing.contact_id
+        } else {
+          throw error
+        }
+      }
     }
   } else {
     contactId = contactMethod.contact_id

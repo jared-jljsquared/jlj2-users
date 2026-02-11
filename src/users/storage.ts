@@ -77,6 +77,64 @@ export const insertContactMethod = async (
 }
 
 /**
+ * Atomically claim a contact (INSERT IF NOT EXISTS) to prevent race conditions.
+ * Returns true if the contact was claimed, false if it already existed.
+ * When claimed, also inserts into contact_methods_by_account.
+ */
+export const tryInsertContactMethod = async (
+  accountId: string,
+  contactId: string,
+  contactType: 'email' | 'phone',
+  contactValue: string,
+  isPrimary: boolean,
+  verifiedAt: Date | null,
+  createdAt: Date,
+  updatedAt: Date,
+): Promise<boolean> => {
+  const client = getClient()
+  const keyspace = getKeyspace()
+
+  const result = await client.execute(
+    `INSERT INTO ${keyspace}.contact_methods 
+     (account_id, contact_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     IF NOT EXISTS`,
+    [
+      accountId,
+      contactId,
+      contactType,
+      contactValue,
+      isPrimary,
+      verifiedAt,
+      createdAt,
+      updatedAt,
+    ],
+  )
+
+  if (!result.wasApplied()) {
+    return false
+  }
+
+  // Insert into contact_methods_by_account (only when we claimed the contact)
+  await client.execute(
+    `INSERT INTO ${keyspace}.contact_methods_by_account 
+     (account_id, contact_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      accountId,
+      contactId,
+      contactType,
+      contactValue,
+      isPrimary,
+      verifiedAt,
+      createdAt,
+      updatedAt,
+    ],
+  )
+  return true
+}
+
+/**
  * Find user by account_id (subject identifier)
  */
 export const findUserById = async (accountId: string): Promise<User | null> => {
@@ -270,40 +328,56 @@ export const findUserByEmail = async (
   }
 }
 
+export interface CreateAccountOptions {
+  name?: string
+  passwordHash?: string
+  passwordSalt?: string
+}
+
 /**
- * Create a new user account
+ * Create an account row only (no contact methods).
+ * Used when the contact has already been claimed via tryInsertContactMethod.
  */
-export const createUser = async (
-  input: UserRegistrationInput,
-  passwordHash?: string,
-  passwordSalt?: string,
-): Promise<User> => {
+export const createAccount = async (
+  accountId: string,
+  options: CreateAccountOptions = {},
+): Promise<void> => {
   const client = getClient()
   const keyspace = getKeyspace()
-
-  const accountId = randomUUID()
-  const contactId = randomUUID()
   const now = new Date()
 
-  // Create account (password fields can be NULL for OIDC/passwordless accounts)
   await client.execute(
     `INSERT INTO ${keyspace}.accounts 
      (account_id, username, password_digest, password_salt, created_at, updated_at, is_active)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       accountId,
-      input.name || null,
-      passwordHash || null,
-      passwordSalt || null,
+      options.name ?? null,
+      options.passwordHash ?? null,
+      options.passwordSalt ?? null,
       now,
       now,
       true,
     ],
   )
+}
 
-  // Create primary email contact (if email provided)
+/**
+ * Create a new user account.
+ * For email registration, uses tryInsertContactMethod (LWT) to prevent race conditions.
+ */
+export const createUser = async (
+  input: UserRegistrationInput,
+  passwordHash?: string,
+  passwordSalt?: string,
+): Promise<User> => {
+  const accountId = randomUUID()
+  const contactId = randomUUID()
+  const now = new Date()
+
   if (input.email) {
-    await insertContactMethod(
+    // Claim contact first to prevent duplicate accounts (TOCTOU race)
+    const applied = await tryInsertContactMethod(
       accountId,
       contactId,
       'email',
@@ -313,9 +387,22 @@ export const createUser = async (
       now,
       now,
     )
+    if (!applied) {
+      throw new Error('User already exists with this email')
+    }
+    await createAccount(accountId, {
+      name: input.name,
+      passwordHash,
+      passwordSalt,
+    })
+  } else {
+    await createAccount(accountId, {
+      name: input.name,
+      passwordHash,
+      passwordSalt,
+    })
   }
 
-  // Return user - email will be empty string if not provided
   const email = input.email ? input.email.toLowerCase() : ''
   return {
     sub: accountId,

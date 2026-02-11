@@ -39,7 +39,7 @@ describe('Database Health (integration with ScyllaDB)', () => {
     expect(health.isHealthy).toBe(true)
   })
 
-  it('should report unhealthy when database client is not initialized', async () => {
+  it('should report healthy when database is disabled for environment', async () => {
     // Explicitly disable DB and avoid initialization
     process.env.SCYLLA_DISABLED = 'true'
     await shutdownDatabase()
