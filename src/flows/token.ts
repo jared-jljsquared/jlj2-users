@@ -26,7 +26,7 @@ const tokenError = (
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store',
-        Pragma: 'no-store',
+        Pragma: 'no-cache',
       },
     },
   )
@@ -189,7 +189,7 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
-      Pragma: 'no-store',
+      Pragma: 'no-cache',
     },
   })
 }

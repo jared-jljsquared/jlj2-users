@@ -4,6 +4,18 @@ import { handleAuthorization } from './authorization.ts'
 import { createSessionToken, getSessionCookieName } from './session.ts'
 import { handleTokenRequest } from './token.ts'
 
+/**
+ * Validate return_to to prevent open redirect.
+ * Only allows relative paths (e.g. /authorize?client_id=...).
+ */
+const isValidReturnTo = (value: string): boolean =>
+  value.startsWith('/') && !value.startsWith('//') && !value.includes('//')
+
+const sanitizeReturnTo = (value: string | undefined): string => {
+  const trimmed = value?.trim() ?? '/'
+  return isValidReturnTo(trimmed) ? trimmed : '/'
+}
+
 const flows = new Hono()
 
 flows.get('/authorize', handleAuthorization)
@@ -11,7 +23,7 @@ flows.get('/authorize', handleAuthorization)
 flows.post('/token', handleTokenRequest)
 
 flows.get('/login', (c) => {
-  const returnTo = c.req.query('return_to') ?? '/'
+  const returnTo = sanitizeReturnTo(c.req.query('return_to'))
 
   const html = `<!DOCTYPE html>
 <html>
@@ -38,7 +50,7 @@ flows.post('/login', async (c) => {
   const body = await c.req.parseBody()
   const email = (body.email as string)?.trim()
   const password = body.password as string
-  const returnTo = (body.return_to as string)?.trim() ?? '/'
+  const returnTo = sanitizeReturnTo(body.return_to as string)
 
   if (!email || !password) {
     return c.redirect(

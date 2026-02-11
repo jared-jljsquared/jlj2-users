@@ -50,16 +50,16 @@ export const consumeAuthorizationCode = async (
   const client = getDbClient()
   const keyspace = getKeyspace()
 
-  const result = await client.execute(
+  const selectResult = await client.execute(
     `SELECT * FROM ${keyspace}.authorization_codes WHERE code = ?`,
     [code],
   )
 
-  if (result.rows.length === 0) {
+  if (selectResult.rows.length === 0) {
     return null
   }
 
-  const row = result.rows[0]
+  const row = selectResult.rows[0]
   const stored: AuthorizationCode = {
     code: row.code as string,
     client_id: String(row.client_id),
@@ -86,9 +86,14 @@ export const consumeAuthorizationCode = async (
     return null
   }
 
-  await client.execute(
-    `DELETE FROM ${keyspace}.authorization_codes WHERE code = ?`,
+  const deleteResult = await client.execute(
+    `DELETE FROM ${keyspace}.authorization_codes WHERE code = ? IF EXISTS`,
     [code],
   )
+
+  if (!deleteResult.wasApplied()) {
+    return null
+  }
+
   return stored
 }

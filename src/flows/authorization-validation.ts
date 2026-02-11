@@ -53,7 +53,8 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
-  if (!params.scope?.includes('openid')) {
+  const scopes = params.scope?.split(/\s+/).filter((s) => s.length > 0) ?? []
+  if (!scopes.includes('openid')) {
     return {
       isValid: false,
       error: 'invalid_scope',
@@ -82,7 +83,6 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
-  const scopes = params.scope.split(/\s+/).filter((s) => s.length > 0)
   const invalidScopes = scopes.filter((s) => !client.scopes.includes(s))
   if (invalidScopes.length > 0) {
     return {

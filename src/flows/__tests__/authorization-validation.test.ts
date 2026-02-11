@@ -96,6 +96,19 @@ describe('Authorization Validation', () => {
     }
   })
 
+  it('should reject scope with openid as substring (exact token match required)', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'fooopenidbar profile',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_scope')
+    }
+  })
+
   it('should reject unknown client', async () => {
     vi.mocked(clientService.getClientById).mockResolvedValue(null)
 

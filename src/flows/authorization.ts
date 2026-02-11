@@ -29,6 +29,34 @@ const buildRedirectUrl = (
   return url.toString()
 }
 
+/**
+ * Render error page for invalid authorization requests.
+ * Per OAuth 2.0 RFC 6749 §4.1.2.1: MUST NOT redirect to unvalidated redirect_uri.
+ */
+const renderAuthorizationError = (
+  error: string,
+  errorDescription?: string,
+): string => {
+  const desc = errorDescription ?? error
+  return `<!DOCTYPE html>
+<html>
+<head><title>Authorization Error</title></head>
+<body>
+  <h1>Authorization Error</h1>
+  <p><strong>${escapeHtml(error)}</strong></p>
+  <p>${escapeHtml(desc)}</p>
+</body>
+</html>`
+}
+
+const escapeHtml = (s: string): string =>
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
 export const handleAuthorization = async (c: Context): Promise<Response> => {
   const params = c.req.query()
   const validation = await validateAuthorizationRequest({
@@ -43,13 +71,9 @@ export const handleAuthorization = async (c: Context): Promise<Response> => {
   })
 
   if (!validation.isValid) {
-    return c.redirect(
-      buildRedirectUrl(params.redirect_uri ?? '', {
-        error: validation.error,
-        error_description: validation.errorDescription,
-        state: params.state ?? null,
-      }),
-      302,
+    return c.html(
+      renderAuthorizationError(validation.error, validation.errorDescription),
+      400,
     )
   }
 
