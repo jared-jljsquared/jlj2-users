@@ -71,6 +71,15 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
+  if (!client.responseTypes.includes('code')) {
+    return {
+      isValid: false,
+      error: 'unsupported_response_type',
+      errorDescription:
+        'Client is not registered for authorization code response type',
+    }
+  }
+
   const isRedirectAllowed = await isRedirectUriAllowed(
     params.clientId,
     params.redirectUri,

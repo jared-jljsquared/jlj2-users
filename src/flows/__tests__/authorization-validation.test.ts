@@ -168,4 +168,29 @@ describe('Authorization Validation', () => {
       expect(result.error).toBe('invalid_request')
     }
   })
+
+  it('should reject client that does not support code response type', async () => {
+    vi.mocked(clientService.getClientById).mockResolvedValue({
+      id: 'client-123',
+      name: 'Client Credentials Only',
+      redirectUris: ['https://example.com/callback'],
+      grantTypes: ['client_credentials'],
+      responseTypes: ['token'],
+      scopes: ['openid'],
+      tokenEndpointAuthMethod: 'client_secret_post',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('unsupported_response_type')
+    }
+  })
 })

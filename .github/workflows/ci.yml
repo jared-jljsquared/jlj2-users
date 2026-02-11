@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run lint (pnpm check)
-        run: pnpm check
+      - name: Run lint
+        run: pnpm lint
 
   build:
     name: Build

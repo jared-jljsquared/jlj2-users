@@ -98,6 +98,13 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     return tokenError('invalid_client', 'Invalid client credentials', 401)
   }
 
+  if (!client.grantTypes.includes('authorization_code')) {
+    return tokenError(
+      'unauthorized_client',
+      'Client is not authorized for authorization_code grant',
+    )
+  }
+
   if (clientId && credentials.clientId !== clientId) {
     return tokenError(
       'invalid_request',

@@ -92,6 +92,32 @@ test.describe('Authorization Code Flow', () => {
     expect(body).toContain('invalid_request')
   })
 
+  test('should reject client that does not support code response type', async ({
+    request,
+  }) => {
+    const createClientRes = await request.post('/clients', {
+      data: {
+        name: 'Client Credentials Only',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['client_credentials'],
+        responseTypes: ['token'],
+        scopes: ['openid'],
+      },
+    })
+    expect(createClientRes.ok()).toBeTruthy()
+    const { id: clientId } = (await createClientRes.json()) as { id: string }
+
+    const redirectUri = 'https://example.com/callback'
+    const res = await request.get(
+      `/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid`,
+    )
+
+    expect(res.status()).toBe(400)
+    const body = await res.text()
+    expect(body).toContain('Authorization Error')
+    expect(body).toContain('unsupported_response_type')
+  })
+
   test('login page should return HTML form', async ({ request }) => {
     const res = await request.get('/login?return_to=/authorize')
     expect(res.ok()).toBeTruthy()
@@ -124,6 +150,42 @@ test.describe('Authorization Code Flow', () => {
     const url = res.url()
     expect(url).not.toContain('evil.com')
     expect(url).toMatch(/^https?:\/\/localhost(:\d+)?\/?/)
+  })
+
+  test('POST /token should reject client not registered for authorization_code grant', async ({
+    request,
+  }) => {
+    const createClientRes = await request.post('/clients', {
+      data: {
+        name: 'Client Credentials Only Token Test',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['client_credentials'],
+        responseTypes: ['token'],
+        scopes: ['openid'],
+      },
+    })
+    expect(createClientRes.ok()).toBeTruthy()
+    const { id: clientId, secret } = (await createClientRes.json()) as {
+      id: string
+      secret: string
+    }
+
+    const res = await request.post('/token', {
+      form: {
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: secret,
+        code: 'fake-code',
+        redirect_uri: 'https://example.com/callback',
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+
+    expect(res.status()).toBe(400)
+    const body = await res.json()
+    expect(body.error).toBe('unauthorized_client')
   })
 
   test('POST /login should accept valid relative return_to', async ({
