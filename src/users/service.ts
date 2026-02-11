@@ -1,6 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabaseClient } from '../database/client.ts'
-import { getDatabaseConfig } from '../database/config.ts'
 import type { ContactMethod } from '../database/types/contact-method.ts'
 import { log } from '../plumbing/logger.ts'
 import {
@@ -17,6 +15,7 @@ import {
   findProviderAccountsByAccountId,
   findUserByEmail,
   findUserById,
+  insertContactMethod,
   linkProviderAccount,
   unlinkProviderAccount,
   updateLastLogin,
@@ -93,19 +92,13 @@ export const authenticateUser = async (
     throw new Error('Invalid email or password')
   }
 
-  // Check if account is active
-  if (!userWithPassword.isActive) {
-    throw new Error('Account is not active')
-  }
-
-  // If password is provided, verify it
+  // Verify password before revealing account status (prevents enumerating inactive accounts)
   if (input.password) {
     // Check if account has a password
     if (!userWithPassword.passwordDigest || !userWithPassword.passwordSalt) {
-      throw new Error('Account does not have a password set')
+      throw new Error('Invalid email or password')
     }
 
-    // Verify password
     const isValid = await verifyPassword(
       input.password,
       userWithPassword.passwordDigest,
@@ -118,6 +111,11 @@ export const authenticateUser = async (
   } else {
     // No password provided - this should be handled by magic link verification
     throw new Error('Password or magic link token required')
+  }
+
+  // Check account status only after successful authentication
+  if (!userWithPassword.isActive) {
+    throw new Error('Account is not active')
   }
 
   // Update last login
@@ -189,30 +187,20 @@ export const requestMagicLink = async (
       undefined,
     )
 
-    // If it's a phone contact, we need to add it separately
-    // Note: This should ideally use a helper function from storage.ts to maintain consistency
-    // For now, we'll insert into both tables directly
+    // If it's a phone contact, we need to add it separately (createUser only inserts email)
     if (contactType === 'phone') {
-      const client = getDatabaseClient()
-      const keyspace = getDatabaseConfig().keyspace
       const newContactId = randomUUID()
       const now = new Date()
-
-      // Insert into both tables to maintain consistency
-      await client.execute(
-        `INSERT INTO ${keyspace}.contact_methods 
-         (account_id, contact_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [user.sub, newContactId, 'phone', contactValue, true, null, now, now],
+      await insertContactMethod(
+        user.sub,
+        newContactId,
+        'phone',
+        contactValue,
+        true,
+        null,
+        now,
+        now,
       )
-      // Insert into lookup table for efficient account-based queries
-      await client.execute(
-        `INSERT INTO ${keyspace}.contact_methods_by_account 
-         (account_id, contact_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [user.sub, newContactId, 'phone', contactValue, true, null, now, now],
-      )
-
       contactId = newContactId
     } else {
       // Find the email contact method we just created
@@ -357,18 +345,22 @@ export const getLinkedProviders = async (
 }
 
 /**
- * Unlink a provider account
+ * Unlink a provider account. Verifies the provider account belongs to the given user.
  */
 export const unlinkProvider = async (
+  accountId: string,
   provider: 'google' | 'microsoft' | 'facebook',
   providerSub: string,
 ): Promise<void> => {
-  // Check if provider account exists
   const existing = await findProviderAccount(provider, providerSub)
   if (!existing) {
     throw new Error('Provider account not found')
   }
 
-  // Unlink provider account
+  // Verify the provider account belongs to this user
+  if (existing.account_id !== accountId) {
+    throw new Error('Provider account not found')
+  }
+
   await unlinkProviderAccount(provider, providerSub)
 }

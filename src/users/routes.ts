@@ -382,7 +382,7 @@ users.delete('/:sub/providers/:provider/:providerSub', async (c) => {
       )
     }
 
-    await unlinkProvider(provider, providerSub)
+    await unlinkProvider(sub, provider, providerSub)
 
     return c.json({ message: 'Provider account unlinked successfully' })
   } catch (error) {

@@ -1,11 +1,12 @@
 import { getDatabaseClient } from '../client.ts'
-import { getAllMigrationHistory } from './runner.ts'
+import { ensureMigrationHistory, getAllMigrationHistory } from './runner.ts'
 import type { Migration, MigrationStatus } from './types.ts'
 
 export const getMigrationStatus = async (
   migrations: Migration[],
 ): Promise<MigrationStatus[]> => {
   const client = getDatabaseClient()
+  await ensureMigrationHistory(client)
   const historyRows = await getAllMigrationHistory(client)
   const historyByVersion = new Map(
     historyRows.map((row) => [

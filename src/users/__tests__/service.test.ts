@@ -181,7 +181,7 @@ describe('User Service', () => {
       )
     })
 
-    it('should reject inactive account', async () => {
+    it('should reject inactive account after successful password verification', async () => {
       const input = {
         email: 'test@example.com',
         password: 'password123',
@@ -197,6 +197,7 @@ describe('User Service', () => {
         passwordDigest: 'hashed-password',
         passwordSalt: 'salt-value',
       })
+      vi.mocked(verifyPassword).mockResolvedValue(true)
 
       await expect(authenticateUser(input)).rejects.toThrow(
         'Account is not active',

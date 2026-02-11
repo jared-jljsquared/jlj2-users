@@ -28,7 +28,7 @@ const getKeyspace = (): string => {
  * Insert contact method into both contact_methods and contact_methods_by_account tables
  * This maintains consistency between the two denormalized tables
  */
-const insertContactMethod = async (
+export const insertContactMethod = async (
   accountId: string,
   contactId: string,
   contactType: 'email' | 'phone',

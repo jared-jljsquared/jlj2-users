@@ -124,7 +124,21 @@ export const initializeDatabase = async (options?: {
         error: error instanceof Error ? error.message : String(error),
         attempt,
       })
+      const failedClient = databaseClient
       databaseClient = null
+      if (failedClient) {
+        try {
+          await failedClient.shutdown()
+        } catch (shutdownError) {
+          log({
+            message: 'Error shutting down failed client',
+            error:
+              shutdownError instanceof Error
+                ? shutdownError.message
+                : String(shutdownError),
+          })
+        }
+      }
 
       if (attempt >= maxRetries) {
         throw error instanceof Error
@@ -140,24 +154,20 @@ export const initializeDatabase = async (options?: {
 }
 
 export const shutdownDatabase = async (): Promise<void> => {
-  if (!databaseClient) {
-    return
-  }
+  const client = databaseClient
+  databaseClient = null
 
-  if (!isDatabaseEnabledForEnv()) {
-    databaseClient = null
+  if (!client) {
     return
   }
 
   try {
-    await databaseClient.shutdown()
+    await client.shutdown()
     log('Database connection closed')
   } catch (error) {
     log({
       message: 'Error while closing database connection',
       error: error instanceof Error ? error.message : String(error),
     })
-  } finally {
-    databaseClient = null
   }
 }
