@@ -21,3 +21,4 @@ When generating or refactoring code the AI assistant must:
 *   **Do not use barrel files unless absolutely necessary.**
 *   **Prefer `rg` over `grep`.**
 *   **Prefer `pnpm` over `npm` for all package management tasks"**
+*   **If a new dependency is needed update the package.json file and then prompt the user to run `pnpm install` before proceeding**

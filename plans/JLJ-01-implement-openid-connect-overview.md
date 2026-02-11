@@ -29,65 +29,89 @@ Create JWT token creation, signing, and verification utilities using Node.js cry
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-03-jwt-utilities.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-03-jwt-utilities.md)
 
-### Step 4: Key Management and JWKS Endpoint
+### Step 4: Key Management and JWKS Endpoint ✅
 Implement key pair generation, rotation, and JWKS (JSON Web Key Set) endpoint for public key distribution.
 
-### Step 5: User Management System
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-04-key-management.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-04-key-management.md)
+
+### Step 5: Database Connection Setup ✅
+Set up ScyllaDB connection, connection pooling, and database client initialization. Configure connection settings, retry logic, and health checks.
+
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-05-database-connection.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-05-database-connection.md)
+
+### Step 6: Database Migrations ✅
+Implement database migration system for creating and managing database schema (keyspaces, tables, indexes). Support versioned migrations and rollback capabilities.
+
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-06-database-migrations.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-06-database-migrations.md)
+
+### Step 7: User Management System ✅
 Build user registration, authentication, and profile management capabilities.
 
-**Details:** See [JLJ-01-step-05-user-management.md](./JLJ-01-step-05-user-management.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-07-user-management.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-07-user-management.md)
 
-### Step 6: Client Registration and Management
+### Step 8: Client Registration and Management
 Implement OAuth 2.0 client registration, client credentials storage, and client authentication mechanisms.
 
-### Step 7: Authorization Code Flow
+**Details:** See [JLJ-01-step-08-client-registration.md](./JLJ-01-step-08-client-registration.md)
+
+### Step 9: Authorization Code Flow
 Implement the OAuth 2.0 authorization code flow including authorization endpoint, token endpoint, and redirect URI handling.
 
-**Details:** See [JLJ-01-step-07-authorization-code-flow.md](./JLJ-01-step-07-authorization-code-flow.md)
+**Details:** See [JLJ-01-step-09-authorization-code-flow.md](./JLJ-01-step-09-authorization-code-flow.md)
 
-### Step 8: Token Endpoint Implementation
+### Step 10: Token Endpoint Implementation
 Create the token endpoint that issues access tokens, ID tokens, and refresh tokens with proper validation and security.
 
-**Details:** See [JLJ-01-step-08-token-endpoint.md](./JLJ-01-step-08-token-endpoint.md)
+**Details:** See [JLJ-01-step-10-token-endpoint.md](./JLJ-01-step-10-token-endpoint.md)
 
-### Step 9: External Provider Integration - Google
+### Step 11: External Provider Integration - Google
 Implement Google OIDC provider integration for accepting and validating Google ID tokens.
 
-**Details:** See [JLJ-01-step-09-external-providers.md](./JLJ-01-step-09-external-providers.md)
+**Details:** See [JLJ-01-step-11-external-providers.md](./JLJ-01-step-11-external-providers.md)
 
-### Step 10: External Provider Integration - Microsoft
+### Step 12: External Provider Integration - Microsoft
 Implement Microsoft OIDC provider integration for accepting and validating Microsoft ID tokens.
 
-**Details:** See [JLJ-01-step-09-external-providers.md](./JLJ-01-step-09-external-providers.md)
+**Details:** See [JLJ-01-step-11-external-providers.md](./JLJ-01-step-11-external-providers.md)
 
-### Step 11: External Provider Integration - Facebook
+### Step 13: External Provider Integration - Facebook
 Implement Facebook OAuth 2.0 provider integration (note: Facebook uses OAuth 2.0, not full OIDC).
 
-**Details:** See [JLJ-01-step-09-external-providers.md](./JLJ-01-step-09-external-providers.md)
+**Details:** See [JLJ-01-step-11-external-providers.md](./JLJ-01-step-11-external-providers.md)
 
-### Step 12: Token Validation Middleware
+### Step 14: Token Validation Middleware
 Create Hono middleware for validating access tokens and ID tokens in protected routes.
 
-### Step 13: UserInfo Endpoint
+**Details:** See [JLJ-01-step-14-token-validation.md](./JLJ-01-step-14-token-validation.md)
+
+### Step 15: UserInfo Endpoint
 Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests.
 
-### Step 14: Token Revocation and Introspection
+**Details:** See [JLJ-01-step-15-userinfo.md](./JLJ-01-step-15-userinfo.md)
+
+### Step 16: Token Revocation and Introspection
 Implement token revocation endpoint and optional token introspection endpoint for token status validation.
 
-### Step 15: Security Hardening
+**Details:** See [JLJ-01-step-16-token-revocation.md](./JLJ-01-step-16-token-revocation.md)
+
+### Step 17: Security Hardening
 Implement security best practices including PKCE support, state parameter validation, nonce handling, and rate limiting.
 
-**Details:** See [JLJ-01-step-15-security-hardening.md](./JLJ-01-step-15-security-hardening.md)
+**Details:** See [JLJ-01-step-17-security-hardening.md](./JLJ-01-step-17-security-hardening.md)
 
-### Step 16: Error Handling and Logging
+### Step 18: Error Handling and Logging
 Enhance error handling with OIDC-compliant error responses and comprehensive security logging.
 
-### Step 17: Testing and Validation
+### Step 19: Testing and Validation
 Create comprehensive test suite and validate OIDC compliance using standard OIDC conformance tests.
 
-**Details:** See [JLJ-01-step-17-testing.md](./JLJ-01-step-17-testing.md)
+**Details:** See [JLJ-01-step-19-testing.md](./JLJ-01-step-19-testing.md)
 
-### Step 18: Documentation and Deployment
+### Step 20: Documentation and Deployment
 Create API documentation, deployment guides, and operational runbooks.
 
 ## Notes
@@ -98,4 +122,6 @@ Create API documentation, deployment guides, and operational runbooks.
 - The implementation will follow OIDC Core 1.0 specification
 - Support for OAuth 2.0 RFC 6749 will be included
 - Security best practices from OAuth 2.0 Security Best Current Practice will be followed
+- Database: ScyllaDB (Cassandra-compatible) will be used for persistent storage
+- Database driver: cassandra-driver or scylla-driver for Node.js
 

@@ -16,6 +16,8 @@
     "test:integration": "playwright test",
     "test:all": "pnpm test && pnpm test:integration",
     "type-check": "tsc --noEmit",
+    "migrate": "tsx src/database/migrations/cli.ts",
+    "db:version": "tsx src/database/check-version.ts",
     "prepare": "husky"
   },
   "keywords": [
@@ -39,7 +41,9 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.7",
+    "cassandra-driver": "^4.7.0",
     "dotenv": "17.2.0",
-    "hono": "^4.11.3"
+    "hono": "^4.11.3",
+    "nanoid": "^5.0.0"
   }
 }
