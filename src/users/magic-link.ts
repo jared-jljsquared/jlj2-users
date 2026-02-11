@@ -121,32 +121,4 @@ export const verifyMagicLinkToken = async (
   return wasApplied
 }
 
-/**
- * Clean up expired or used tokens (optional maintenance function)
- */
-export const cleanupMagicLinkTokens = async (): Promise<void> => {
-  // Tokens with TTL will be automatically removed by ScyllaDB
-  // This function can be used for manual cleanup if needed
-  const client = getClient()
-  const keyspace = getKeyspace()
-
-  // Get all tokens and check expiration
-  const result = await client.execute(
-    `SELECT contact_id, magic_token, expires_at, used FROM ${keyspace}.magic_link_tokens`,
-  )
-
-  const now = new Date()
-  for (const row of result.rows) {
-    const expiresAt = row.expires_at as Date
-    const used = row.used as boolean
-
-    // Delete expired or used tokens
-    if (expiresAt < now || used) {
-      await client.execute(
-        `DELETE FROM ${keyspace}.magic_link_tokens 
-         WHERE contact_id = ? AND magic_token = ?`,
-        [row.contact_id, row.magic_token],
-      )
-    }
-  }
-}
+// Note: magic_link_tokens rely on TTL for cleanup; no manual sweep function is needed.
