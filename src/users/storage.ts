@@ -74,6 +74,23 @@ export const insertContactMethod = async (
       updatedAt,
     ],
   )
+
+  // Insert into contact_methods_by_id (partitioned by contact_id) for magic link auth lookups
+  await client.execute(
+    `INSERT INTO ${keyspace}.contact_methods_by_id 
+     (contact_id, account_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      contactId,
+      accountId,
+      contactType,
+      contactValue,
+      isPrimary,
+      verifiedAt,
+      createdAt,
+      updatedAt,
+    ],
+  )
 }
 
 /**
@@ -123,6 +140,23 @@ export const tryInsertContactMethod = async (
     [
       accountId,
       contactId,
+      contactType,
+      contactValue,
+      isPrimary,
+      verifiedAt,
+      createdAt,
+      updatedAt,
+    ],
+  )
+
+  // Insert into contact_methods_by_id (partitioned by contact_id) for magic link auth lookups
+  await client.execute(
+    `INSERT INTO ${keyspace}.contact_methods_by_id 
+     (contact_id, account_id, contact_type, contact_value, is_primary, verified_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      contactId,
+      accountId,
       contactType,
       contactValue,
       isPrimary,
@@ -233,7 +267,8 @@ export const findContactMethod = async (
 }
 
 /**
- * Find contact method by contactId
+ * Find contact method by contactId.
+ * Uses contact_methods_by_id for efficient lookup (no ALLOW FILTERING).
  */
 export const findContactMethodById = async (
   contactId: string,
@@ -241,11 +276,8 @@ export const findContactMethodById = async (
   const client = getClient()
   const keyspace = getKeyspace()
 
-  // contact_id is not in the primary key, so we need to use ALLOW FILTERING
   const result = await client.execute(
-    `SELECT * FROM ${keyspace}.contact_methods 
-     WHERE contact_id = ? ALLOW FILTERING
-     LIMIT 1`,
+    `SELECT * FROM ${keyspace}.contact_methods_by_id WHERE contact_id = ?`,
     [contactId],
   )
 

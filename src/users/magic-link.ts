@@ -78,7 +78,8 @@ export const verifyMagicLinkToken = async (
 
   // First, get token to check expiration
   const result = await client.execute(
-    `SELECT magic_token, expires_at, used FROM ${keyspace}.magic_link_tokens 
+    `SELECT magic_token, expires_at, used, TTL(used) AS ttl_remaining 
+     FROM ${keyspace}.magic_link_tokens 
      WHERE contact_id = ? AND magic_token = ?`,
     [contactId, token],
   )
@@ -89,9 +90,15 @@ export const verifyMagicLinkToken = async (
 
   const row = result.rows[0]
   const expiresAt = row.expires_at as Date
+  const ttlRemaining = (row.ttl_remaining as number | null) ?? 0
 
   // Check if token is expired
   if (expiresAt < new Date()) {
+    return false
+  }
+
+  // If TTL already expired (should be caught above), treat as invalid
+  if (ttlRemaining <= 0) {
     return false
   }
 
@@ -99,10 +106,11 @@ export const verifyMagicLinkToken = async (
   // This uses a lightweight transaction (LWT) to prevent race conditions
   const updateResult = await client.execute(
     `UPDATE ${keyspace}.magic_link_tokens 
+     USING TTL ?
      SET used = ?
      WHERE contact_id = ? AND magic_token = ?
      IF used = ?`,
-    [true, contactId, token, false],
+    [ttlRemaining, true, contactId, token, false],
   )
 
   // Check if the conditional update was applied
