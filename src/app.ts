@@ -5,6 +5,7 @@ import info from '../package.json' with { type: 'json' }
 import clients from './clients/routes.ts'
 import { initializeDatabase, shutdownDatabase } from './database/client.ts'
 import { checkDatabaseHealth } from './database/health.ts'
+import flows from './flows/routes.ts'
 import { getOidcConfig } from './oidc/config.ts'
 import { handleDiscovery } from './oidc/discovery.ts'
 import { handleJwks } from './oidc/jwks.ts'
@@ -50,6 +51,9 @@ app.route('/users', users)
 
 // OAuth client registration and management
 app.route('/clients', clients)
+
+// OAuth/OIDC flows: authorize, token, login
+app.route('/', flows)
 
 const start = async (): Promise<void> => {
   // Validate OIDC configuration on startup
