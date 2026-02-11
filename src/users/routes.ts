@@ -220,11 +220,7 @@ users.post('/magic-link/request', async (c) => {
         return c.json({ error: error.message }, 400)
       }
     }
-    // Don't reveal if user exists or not
-    return c.json({
-      message:
-        'If an account exists with this contact method, a magic link has been sent',
-    })
+    return c.json({ error: 'Failed to process magic link request' }, 500)
   }
 })
 
