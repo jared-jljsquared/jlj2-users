@@ -53,10 +53,11 @@ Build user registration, authentication, and profile management capabilities.
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-07-user-management.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-07-user-management.md)
 
-### Step 8: Client Registration and Management
+### Step 8: Client Registration and Management ✅
 Implement OAuth 2.0 client registration, client credentials storage, and client authentication mechanisms.
 
-**Details:** See [JLJ-01-step-08-client-registration.md](./JLJ-01-step-08-client-registration.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-08-client-registration.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-08-client-registration.md)
 
 ### Step 9: Authorization Code Flow
 Implement the OAuth 2.0 authorization code flow including authorization endpoint, token endpoint, and redirect URI handling.

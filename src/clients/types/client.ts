@@ -1,11 +1,36 @@
+import type { TokenEndpointAuthMethod } from '../../database/types/oauth-client.ts'
+
 export interface Client {
   id: string
-  secret?: string
   name: string
-  redirect_uris: string[]
-  grant_types: string[]
-  response_types: string[]
+  redirectUris: string[]
+  grantTypes: string[]
+  responseTypes: string[]
   scopes: string[]
-  created_at: Date
-  updated_at: Date
+  tokenEndpointAuthMethod: TokenEndpointAuthMethod
+  createdAt: Date
+  updatedAt: Date
+}
+
+/** Client with secret - only returned on initial registration */
+export interface ClientWithSecret extends Client {
+  secret: string
+}
+
+export interface ClientRegistrationInput {
+  name: string
+  redirectUris: string[]
+  grantTypes: string[]
+  responseTypes: string[]
+  scopes: string[]
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod
+}
+
+export interface ClientUpdateInput {
+  name?: string
+  redirectUris?: string[]
+  grantTypes?: string[]
+  responseTypes?: string[]
+  scopes?: string[]
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod
 }

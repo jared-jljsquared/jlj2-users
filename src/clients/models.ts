@@ -1,3 +1,2 @@
-// Placeholder for client models
-// Will be implemented in step 6
-
+// Client models are defined in src/clients/types/client.ts
+export * from './types/client.ts'

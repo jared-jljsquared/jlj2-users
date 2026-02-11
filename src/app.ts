@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import info from '../package.json' with { type: 'json' }
+import clients from './clients/routes.ts'
 import { initializeDatabase, shutdownDatabase } from './database/client.ts'
 import { checkDatabaseHealth } from './database/health.ts'
 import { getOidcConfig } from './oidc/config.ts'
@@ -46,6 +47,9 @@ app.get('/.well-known/jwks.json', handleJwks)
 
 // User management endpoints
 app.route('/users', users)
+
+// OAuth client registration and management
+app.route('/clients', clients)
 
 const start = async (): Promise<void> => {
   // Validate OIDC configuration on startup
