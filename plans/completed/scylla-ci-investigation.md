@@ -178,7 +178,7 @@ ScyllaDB is API-compatible with Cassandra. You could use `cassandra:latest` as a
 
 1. ✅ Added `scripts/wait-for-scylla.ts` – polls until ScyllaDB accepts CQL connections using `cassandra-driver`.
 2. ✅ Re-enabled the test job in `.github/workflows/ci.yml` with:
-   - ScyllaDB service container (`scylladb/scylla:latest`) with developer mode flags matching local docker-compose
+   - ScyllaDB service container (`scylladb/scylla:latest`) with `SCYLLA_DEVELOPER_MODE=1`. Note: GitHub Actions service container `options` only accept Docker flags, not container args (e.g. `--smp`, `--memory`), so the image runs with its defaults.
    - Env vars: `SCYLLA_HOSTS`, `SCYLLA_PORT`, `SCYLLA_KEYSPACE`, `SCYLLA_LOCAL_DATACENTER`, `SCYLLA_ENABLE_IN_TESTS`
    - Wait step before `pnpm test`
 3. Run CI and adjust the wait timeout if needed.

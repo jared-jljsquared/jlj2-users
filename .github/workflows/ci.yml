@@ -71,7 +71,6 @@ jobs:
           - 9042:9042
         env:
           SCYLLA_DEVELOPER_MODE: "1"
-        options: --smp 1 --memory 1G --overprovisioned 1 --api-address 0.0.0.0
 
     env:
       SCYLLA_HOSTS: localhost
