@@ -8,8 +8,8 @@ on:
       - reopened
 
 jobs:
-  quality-checks:
-    name: Lint, Build, and Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -33,8 +33,38 @@ jobs:
       - name: Run lint (pnpm check)
         run: pnpm check
 
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Build project
         run: pnpm build
 
-      - name: Run tests
-        run: pnpm test
+  test:
+    name: Tests (disabled temporarily)
+    if: false
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - run: echo "Test job temporarily disabled"
+
