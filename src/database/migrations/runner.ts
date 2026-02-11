@@ -74,9 +74,9 @@ export const recordMigration = async (
 
   if (action === 'up') {
     await client.execute(
-      `INSERT INTO ${config.keyspace}.migration_history (version, name, description, applied_at)
-       VALUES (?, ?, ?, ?)`,
-      [migration.version, migration.name, migration.description, now],
+      `INSERT INTO ${config.keyspace}.migration_history (version, name, description, applied_at, rolled_back_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [migration.version, migration.name, migration.description, now, null],
     )
   } else {
     await client.execute(
