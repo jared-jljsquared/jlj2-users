@@ -1,8 +1,19 @@
+import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
 import { createSessionToken, getSessionCookieName } from './session.ts'
 import { handleTokenRequest } from './token.ts'
+
+const isSecureRequest = (c: Context): boolean => {
+  try {
+    const url = new URL(c.req.url)
+    if (url.protocol === 'https:') return true
+  } catch {
+    // ignore URL parse errors
+  }
+  return c.req.header('x-forwarded-proto') === 'https'
+}
 
 /**
  * Validate return_to to prevent open redirect.
@@ -64,10 +75,11 @@ flows.post('/login', async (c) => {
     const user = await authenticateUser({ email, password })
     const token = createSessionToken(user.sub)
     const cookieName = getSessionCookieName()
+    const secureFlag = isSecureRequest(c) ? '; Secure' : ''
     const res = c.redirect(returnTo, 302)
     res.headers.set(
       'Set-Cookie',
-      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=900`,
+      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=900`,
     )
     return res
   } catch {

@@ -8,6 +8,7 @@ import type {
 } from '../database/types/authorization-code.ts'
 
 const CODE_EXPIRY_MINUTES = 10
+const CODE_TTL_SECONDS = CODE_EXPIRY_MINUTES * 60
 
 const getDbClient = (): Client => getDatabaseClient()
 const getKeyspace = (): string => getDatabaseConfig().keyspace
@@ -24,7 +25,8 @@ export const generateAuthorizationCode = async (
   await client.execute(
     `INSERT INTO ${keyspace}.authorization_codes
      (code, client_id, redirect_uri, scopes, user_id, code_challenge, code_challenge_method, nonce, expires_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     USING TTL ?`,
     [
       code,
       input.client_id,
@@ -36,6 +38,7 @@ export const generateAuthorizationCode = async (
       input.nonce ?? null,
       expiresAt,
       now,
+      CODE_TTL_SECONDS,
     ],
   )
 
