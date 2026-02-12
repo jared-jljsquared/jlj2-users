@@ -67,7 +67,7 @@ flows.post('/login', async (c) => {
     const res = c.redirect(returnTo, 302)
     res.headers.set(
       'Set-Cookie',
-      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=900`,
+      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=900`,
     )
     return res
   } catch {

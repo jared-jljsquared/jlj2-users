@@ -1,11 +1,5 @@
 import { getClientById, isRedirectUriAllowed } from '../clients/service.ts'
 
-export interface AuthorizationValidationResult {
-  isValid: boolean
-  error?: string
-  errorDescription?: string
-}
-
 export interface ValidatedAuthorizationRequest {
   clientId: string
   redirectUri: string
