@@ -26,7 +26,7 @@ export const generateAuthorizationCode = async (
     `INSERT INTO ${keyspace}.authorization_codes
      (code, client_id, redirect_uri, scopes, user_id, code_challenge, code_challenge_method, nonce, expires_at, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     USING TTL ?`,
+     USING TTL ${CODE_TTL_SECONDS}`,
     [
       code,
       input.client_id,
@@ -38,7 +38,6 @@ export const generateAuthorizationCode = async (
       input.nonce ?? null,
       expiresAt,
       now,
-      CODE_TTL_SECONDS,
     ],
   )
 

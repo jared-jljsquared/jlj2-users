@@ -3,6 +3,7 @@ import { getActiveKeyPair, initializeKeys } from '../tokens/key-management.ts'
 
 const SESSION_COOKIE_NAME = 'oidc_session'
 const SESSION_MAX_AGE_SECONDS = 15 * 60 // 15 minutes
+const SESSION_TOKEN_PURPOSE = 'session'
 
 export interface SessionPayload {
   sub: string
@@ -13,12 +14,13 @@ export interface SessionPayload {
 export const createSessionToken = (sub: string): string => {
   const keyPair = getActiveKeyPair(initializeKeys().kid) ?? initializeKeys()
   const now = Math.floor(Date.now() / 1000)
-  const payload: SessionPayload = {
+  const payload = {
     sub,
     iat: now,
     exp: now + SESSION_MAX_AGE_SECONDS,
+    purpose: SESSION_TOKEN_PURPOSE,
   }
-  return signJwt({ ...payload }, keyPair.privateKey, 'RS256', keyPair.kid)
+  return signJwt(payload, keyPair.privateKey, 'RS256', keyPair.kid)
 }
 
 export const verifySessionToken = (token: string): SessionPayload | null => {
@@ -33,6 +35,9 @@ export const verifySessionToken = (token: string): SessionPayload | null => {
     const { payload } = verifyJwt(token, keyPair.publicKey, 'RS256')
 
     if (typeof payload.sub !== 'string' || !payload.sub) {
+      return null
+    }
+    if (payload.purpose !== SESSION_TOKEN_PURPOSE) {
       return null
     }
 

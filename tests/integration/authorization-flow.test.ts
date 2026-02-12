@@ -368,4 +368,28 @@ test.describe('Authorization Code Flow', () => {
     const url = res.url()
     expect(url).not.toContain('evil.com')
   })
+
+  test('POST /login should not redirect to protocol-relative URL via backslash (/evil.com)', async ({
+    request,
+  }) => {
+    await request.post('/users/register', {
+      data: {
+        email: 'backslash-bypass@example.com',
+        password: 'test-password-123',
+        name: 'Backslash Bypass Test',
+      },
+    })
+
+    const res = await request.post('/login', {
+      form: {
+        email: 'backslash-bypass@example.com',
+        password: 'test-password-123',
+        return_to: '/\\evil.com/phishing',
+      },
+      maxRedirects: 1,
+    })
+
+    const url = res.url()
+    expect(url).not.toContain('evil.com')
+  })
 })

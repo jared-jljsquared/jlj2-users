@@ -19,13 +19,17 @@ const isSecureRequest = (c: Context): boolean => {
  * Validate return_to to prevent open redirect.
  * Only allows relative paths (e.g. /authorize?client_id=...).
  * Rejects protocol-relative URLs (//evil.com) but allows // in query values (e.g. redirect_uri=https://...).
+ * Normalizes backslash to slash before validation since browsers treat /\ as // in URLs.
  */
-const isValidReturnTo = (value: string): boolean =>
-  value.startsWith('/') && !value.startsWith('//')
+const isValidReturnTo = (value: string): boolean => {
+  const normalized = value.replace(/\\/g, '/')
+  return normalized.startsWith('/') && !normalized.startsWith('//')
+}
 
 const sanitizeReturnTo = (value: string | undefined): string => {
   const trimmed = value?.trim() ?? '/'
-  return isValidReturnTo(trimmed) ? trimmed : '/'
+  const normalized = trimmed.replace(/\\/g, '/')
+  return isValidReturnTo(normalized) ? normalized : '/'
 }
 
 const flows = new Hono()

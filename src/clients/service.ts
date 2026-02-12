@@ -73,7 +73,7 @@ const toApiClient = (row: {
 /**
  * Generate a random client secret (32 bytes, base64url encoded)
  */
-export const generateClientSecret = (): string => {
+const generateClientSecret = (): string => {
   return randomBytes(32).toString('base64url')
 }
 
