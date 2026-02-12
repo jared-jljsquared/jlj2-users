@@ -166,6 +166,23 @@ describe('Authorization Validation', () => {
     expect(result.isValid).toBe(false)
     if (!result.isValid) {
       expect(result.error).toBe('invalid_request')
+      expect(result.redirectUri).toBe('https://example.com/callback')
+    }
+  })
+
+  it('should return redirectUri for post-validation invalid_scope (client scope check)', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid offline_access',
+      state: 'my-state',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_scope')
+      expect(result.redirectUri).toBe('https://example.com/callback')
+      expect(result.state).toBe('my-state')
     }
   })
 

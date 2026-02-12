@@ -27,7 +27,13 @@ export const validateAuthorizationRequest = async (params: {
   nonce?: string
 }): Promise<
   | { isValid: true; data: ValidatedAuthorizationRequest }
-  | { isValid: false; error: string; errorDescription?: string }
+  | {
+      isValid: false
+      error: string
+      errorDescription?: string
+      redirectUri?: string
+      state?: string | null
+    }
 > => {
   if (!params.clientId?.trim()) {
     return {
@@ -98,6 +104,8 @@ export const validateAuthorizationRequest = async (params: {
       isValid: false,
       error: 'invalid_scope',
       errorDescription: `Invalid scope(s): ${invalidScopes.join(', ')}`,
+      redirectUri: params.redirectUri,
+      state: params.state?.trim() || null,
     }
   }
 
@@ -109,6 +117,8 @@ export const validateAuthorizationRequest = async (params: {
       isValid: false,
       error: 'invalid_request',
       errorDescription: 'code_challenge_method must be S256 or plain',
+      redirectUri: params.redirectUri,
+      state: params.state?.trim() || null,
     }
   }
 
@@ -118,6 +128,8 @@ export const validateAuthorizationRequest = async (params: {
       error: 'invalid_request',
       errorDescription:
         'code_challenge is required when code_challenge_method is provided',
+      redirectUri: params.redirectUri,
+      state: params.state?.trim() || null,
     }
   }
 

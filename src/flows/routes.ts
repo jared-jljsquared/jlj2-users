@@ -7,9 +7,10 @@ import { handleTokenRequest } from './token.ts'
 /**
  * Validate return_to to prevent open redirect.
  * Only allows relative paths (e.g. /authorize?client_id=...).
+ * Rejects protocol-relative URLs (//evil.com) but allows // in query values (e.g. redirect_uri=https://...).
  */
 const isValidReturnTo = (value: string): boolean =>
-  value.startsWith('/') && !value.startsWith('//') && !value.includes('//')
+  value.startsWith('/') && !value.startsWith('//')
 
 const sanitizeReturnTo = (value: string | undefined): string => {
   const trimmed = value?.trim() ?? '/'

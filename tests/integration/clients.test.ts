@@ -78,4 +78,52 @@ test.describe('OAuth Client Registration', () => {
     )
     expect(response.status()).toBe(404)
   })
+
+  test('should reject update with empty redirectUris', async ({ request }) => {
+    const createRes = await request.post('/clients', {
+      data: {
+        name: 'Update Test Client',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        responseTypes: ['code'],
+        scopes: ['openid'],
+      },
+    })
+    expect(createRes.status()).toBe(201)
+    const { id } = (await createRes.json()) as { id: string }
+
+    const updateRes = await request.put(`/clients/${id}`, {
+      data: {
+        redirectUris: [],
+      },
+    })
+
+    expect(updateRes.status()).toBe(400)
+    const body = (await updateRes.json()) as Record<string, unknown>
+    expect(body.error).toContain('redirect URI')
+  })
+
+  test('should reject update with invalid grant type', async ({ request }) => {
+    const createRes = await request.post('/clients', {
+      data: {
+        name: 'Grant Type Update Test',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        responseTypes: ['code'],
+        scopes: ['openid'],
+      },
+    })
+    expect(createRes.status()).toBe(201)
+    const { id } = (await createRes.json()) as { id: string }
+
+    const updateRes = await request.put(`/clients/${id}`, {
+      data: {
+        grantTypes: ['invalid_grant_type'],
+      },
+    })
+
+    expect(updateRes.status()).toBe(400)
+    const body = (await updateRes.json()) as Record<string, unknown>
+    expect(body.error).toContain('grant type')
+  })
 })

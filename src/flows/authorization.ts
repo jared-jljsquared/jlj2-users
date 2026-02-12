@@ -71,6 +71,16 @@ export const handleAuthorization = async (c: Context): Promise<Response> => {
   })
 
   if (!validation.isValid) {
+    if (validation.redirectUri) {
+      return c.redirect(
+        buildRedirectUrl(validation.redirectUri, {
+          error: validation.error,
+          error_description: validation.errorDescription,
+          state: validation.state ?? undefined,
+        }),
+        302,
+      )
+    }
     return c.html(
       renderAuthorizationError(validation.error, validation.errorDescription),
       400,

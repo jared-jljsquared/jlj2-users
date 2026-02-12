@@ -76,7 +76,7 @@ Implement API endpoints:
 - **Storage**: `src/clients/storage.ts` - insertClient, findClientById, updateClient, deactivateClient
 - **Service**: `src/clients/service.ts` - registerClient, getClientById, authenticateClient, isRedirectUriAllowed, validateScopes
 - **Routes**: `src/clients/routes.ts` - POST/GET/PUT/DELETE /clients
-- **Auth**: `src/clients/auth.ts` - createClientAuthMiddleware, extractClientCredentials for token endpoint (step 10)
+- **Auth**: `src/clients/auth.ts` - extractClientCredentialsFromForm, extractClientCredentialsFromBasicAuthHeader (used by token endpoint)
 
 ## Success Criteria
 

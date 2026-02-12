@@ -113,7 +113,14 @@ clients.put('/:id', async (c) => {
     })
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.startsWith('Invalid redirect URI')) {
+      if (
+        error.message === 'At least one redirect URI is required' ||
+        error.message.startsWith('Invalid redirect URI') ||
+        error.message.startsWith('Invalid grant type') ||
+        error.message.startsWith('Invalid response type') ||
+        error.message.startsWith('Invalid scope') ||
+        error.message.startsWith('Invalid token_endpoint_auth_method')
+      ) {
         return c.json({ error: error.message }, 400)
       }
     }

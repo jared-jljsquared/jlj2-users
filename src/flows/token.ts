@@ -1,5 +1,8 @@
 import type { Context } from 'hono'
-import { extractClientCredentialsFromForm } from '../clients/auth.ts'
+import {
+  extractClientCredentialsFromBasicAuthHeader,
+  extractClientCredentialsFromForm,
+} from '../clients/auth.ts'
 import { authenticateClient } from '../clients/service.ts'
 import { getOidcConfig } from '../oidc/config.ts'
 import { signJwt } from '../tokens/jwt.ts'
@@ -66,25 +69,9 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     return tokenError('invalid_request', 'code and redirect_uri are required')
   }
 
-  let credentials = extractClientCredentialsFromForm(params)
-  if (!credentials) {
-    const authHeader = c.req.header('Authorization')
-    if (authHeader?.startsWith('Basic ')) {
-      try {
-        const base64 = authHeader.slice(6)
-        const decoded = atob(base64)
-        const idx = decoded.indexOf(':')
-        if (idx > 0) {
-          credentials = {
-            clientId: decoded.slice(0, idx),
-            clientSecret: decoded.slice(idx + 1),
-          }
-        }
-      } catch {
-        // fall through
-      }
-    }
-  }
+  const credentials =
+    extractClientCredentialsFromForm(params) ??
+    extractClientCredentialsFromBasicAuthHeader(c.req.header('Authorization'))
 
   if (!credentials) {
     return tokenError('invalid_client', 'Client authentication required', 401)

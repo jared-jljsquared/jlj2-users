@@ -67,6 +67,34 @@ test.describe('Authorization Code Flow', () => {
     expect(body).toContain('invalid_scope')
   })
 
+  test('should redirect to redirect_uri with error for invalid scope (post-validation)', async ({
+    request,
+  }) => {
+    const createClientRes = await request.post('/clients', {
+      data: {
+        name: 'Post-Validation Scope Client',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        responseTypes: ['code'],
+        scopes: ['openid', 'profile'],
+      },
+    })
+    expect(createClientRes.ok()).toBeTruthy()
+    const { id: clientId } = (await createClientRes.json()) as { id: string }
+
+    const redirectUri = 'https://example.com/callback'
+    const res = await request.get(
+      `/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email&state=test-state`,
+      { maxRedirects: 0 },
+    )
+
+    expect(res.status()).toBe(302)
+    const location = res.headers().location
+    expect(location).toContain('https://example.com/callback')
+    expect(location).toContain('error=invalid_scope')
+    expect(location).toContain('state=test-state')
+  })
+
   test('should return error page for missing redirect_uri (no 500)', async ({
     request,
   }) => {
@@ -211,5 +239,57 @@ test.describe('Authorization Code Flow', () => {
     const url = res.url()
     expect(url).toContain('/authorize')
     expect(url).toContain('client_id=test')
+  })
+
+  test('POST /login should accept return_to with redirect_uri in query (contains //)', async ({
+    request,
+  }) => {
+    await request.post('/users/register', {
+      data: {
+        email: 'return-uri-test@example.com',
+        password: 'test-password-123',
+        name: 'Return URI Test',
+      },
+    })
+
+    const returnTo =
+      '/authorize?client_id=test&redirect_uri=https://example.com/callback&response_type=code&scope=openid'
+    const res = await request.post('/login', {
+      form: {
+        email: 'return-uri-test@example.com',
+        password: 'test-password-123',
+        return_to: returnTo,
+      },
+      maxRedirects: 1,
+    })
+
+    const url = res.url()
+    expect(url).toContain('/authorize')
+    expect(url).toContain('redirect_uri=')
+    expect(url).toContain('example.com')
+  })
+
+  test('POST /login should not redirect to protocol-relative URL (//evil.com)', async ({
+    request,
+  }) => {
+    await request.post('/users/register', {
+      data: {
+        email: 'protocol-relative@example.com',
+        password: 'test-password-123',
+        name: 'Protocol Relative Test',
+      },
+    })
+
+    const res = await request.post('/login', {
+      form: {
+        email: 'protocol-relative@example.com',
+        password: 'test-password-123',
+        return_to: '//evil.com/phishing',
+      },
+      maxRedirects: 1,
+    })
+
+    const url = res.url()
+    expect(url).not.toContain('evil.com')
   })
 })

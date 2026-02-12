@@ -180,11 +180,54 @@ export const updateClientById = async (
     return null
   }
 
-  if (input.redirectUris?.length) {
+  if (input.redirectUris !== undefined) {
+    if (!input.redirectUris.length) {
+      throw new Error('At least one redirect URI is required')
+    }
     for (const uri of input.redirectUris) {
       if (!isValidRedirectUri(uri)) {
         throw new Error(`Invalid redirect URI: ${uri}`)
       }
+    }
+  }
+
+  if (input.grantTypes !== undefined) {
+    for (const gt of input.grantTypes) {
+      if (
+        !ALLOWED_GRANT_TYPES.includes(
+          gt as (typeof ALLOWED_GRANT_TYPES)[number],
+        )
+      ) {
+        throw new Error(`Invalid grant type: ${gt}`)
+      }
+    }
+  }
+
+  if (input.responseTypes !== undefined) {
+    for (const rt of input.responseTypes) {
+      if (
+        !ALLOWED_RESPONSE_TYPES.includes(
+          rt as (typeof ALLOWED_RESPONSE_TYPES)[number],
+        )
+      ) {
+        throw new Error(`Invalid response type: ${rt}`)
+      }
+    }
+  }
+
+  if (input.scopes !== undefined) {
+    for (const s of input.scopes) {
+      if (!ALLOWED_SCOPES.includes(s as (typeof ALLOWED_SCOPES)[number])) {
+        throw new Error(`Invalid scope: ${s}`)
+      }
+    }
+  }
+
+  if (input.tokenEndpointAuthMethod !== undefined) {
+    if (!AUTH_METHODS.includes(input.tokenEndpointAuthMethod)) {
+      throw new Error(
+        `Invalid token_endpoint_auth_method: ${input.tokenEndpointAuthMethod}`,
+      )
     }
   }
 
