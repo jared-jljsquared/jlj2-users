@@ -4,7 +4,6 @@ import { validateAuthorizationRequest } from '../authorization-validation.ts'
 
 vi.mock('../../clients/service.ts', () => ({
   getClientById: vi.fn(),
-  isRedirectUriAllowed: vi.fn(),
 }))
 
 describe('Authorization Validation', () => {
@@ -21,7 +20,6 @@ describe('Authorization Validation', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    vi.mocked(clientService.isRedirectUriAllowed).mockResolvedValue(true)
   })
 
   afterEach(() => {
@@ -125,8 +123,6 @@ describe('Authorization Validation', () => {
   })
 
   it('should reject unregistered redirect_uri', async () => {
-    vi.mocked(clientService.isRedirectUriAllowed).mockResolvedValue(false)
-
     const result = await validateAuthorizationRequest({
       clientId: 'client-123',
       redirectUri: 'https://evil.com/callback',

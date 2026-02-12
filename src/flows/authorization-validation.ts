@@ -1,4 +1,4 @@
-import { getClientById, isRedirectUriAllowed } from '../clients/service.ts'
+import { getClientById } from '../clients/service.ts'
 
 export interface ValidatedAuthorizationRequest {
   clientId: string
@@ -54,11 +54,7 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
-  const isRedirectAllowed = await isRedirectUriAllowed(
-    params.clientId,
-    params.redirectUri,
-  )
-  if (!isRedirectAllowed) {
+  if (!client.redirectUris.includes(params.redirectUri)) {
     return {
       isValid: false,
       error: 'invalid_request',
