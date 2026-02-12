@@ -119,7 +119,7 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
 
   const user = await getUserById(codeData.user_id)
   if (!user) {
-    return tokenError('server_error', 'User not found')
+    return tokenError('server_error', 'User not found', 500)
   }
 
   const config = getOidcConfig()
