@@ -51,38 +51,12 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
-  if (params.responseType !== 'code') {
-    return {
-      isValid: false,
-      error: 'unsupported_response_type',
-      errorDescription: 'response_type must be "code"',
-    }
-  }
-
-  const scopes = params.scope?.split(/\s+/).filter((s) => s.length > 0) ?? []
-  if (!scopes.includes('openid')) {
-    return {
-      isValid: false,
-      error: 'invalid_scope',
-      errorDescription: 'scope must include "openid"',
-    }
-  }
-
   const client = await getClientById(params.clientId)
   if (!client) {
     return {
       isValid: false,
       error: 'invalid_client',
       errorDescription: 'Unknown client',
-    }
-  }
-
-  if (!client.responseTypes.includes('code')) {
-    return {
-      isValid: false,
-      error: 'unsupported_response_type',
-      errorDescription:
-        'Client is not registered for authorization code response type',
     }
   }
 
@@ -98,6 +72,38 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
+  if (params.responseType !== 'code') {
+    return {
+      isValid: false,
+      error: 'unsupported_response_type',
+      errorDescription: 'response_type must be "code"',
+      redirectUri: params.redirectUri,
+      state: params.state ?? null,
+    }
+  }
+
+  const scopes = params.scope?.split(/\s+/).filter((s) => s.length > 0) ?? []
+  if (!scopes.includes('openid')) {
+    return {
+      isValid: false,
+      error: 'invalid_scope',
+      errorDescription: 'scope must include "openid"',
+      redirectUri: params.redirectUri,
+      state: params.state ?? null,
+    }
+  }
+
+  if (!client.responseTypes.includes('code')) {
+    return {
+      isValid: false,
+      error: 'unsupported_response_type',
+      errorDescription:
+        'Client is not registered for authorization code response type',
+      redirectUri: params.redirectUri,
+      state: params.state ?? null,
+    }
+  }
+
   const invalidScopes = scopes.filter((s) => !client.scopes.includes(s))
   if (invalidScopes.length > 0) {
     return {
@@ -105,7 +111,7 @@ export const validateAuthorizationRequest = async (params: {
       error: 'invalid_scope',
       errorDescription: `Invalid scope(s): ${invalidScopes.join(', ')}`,
       redirectUri: params.redirectUri,
-      state: params.state?.trim() || null,
+      state: params.state ?? null,
     }
   }
 
@@ -118,7 +124,7 @@ export const validateAuthorizationRequest = async (params: {
       error: 'invalid_request',
       errorDescription: 'code_challenge_method must be S256 or plain',
       redirectUri: params.redirectUri,
-      state: params.state?.trim() || null,
+      state: params.state ?? null,
     }
   }
 
@@ -129,7 +135,7 @@ export const validateAuthorizationRequest = async (params: {
       errorDescription:
         'code_challenge is required when code_challenge_method is provided',
       redirectUri: params.redirectUri,
-      state: params.state?.trim() || null,
+      state: params.state ?? null,
     }
   }
 
@@ -139,7 +145,7 @@ export const validateAuthorizationRequest = async (params: {
       clientId: params.clientId,
       redirectUri: params.redirectUri,
       scopes,
-      state: params.state?.trim() || null,
+      state: params.state ?? null,
       codeChallenge: params.codeChallenge?.trim() || null,
       codeChallengeMethod: params.codeChallengeMethod?.trim() || null,
       nonce: params.nonce?.trim() || null,

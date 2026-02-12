@@ -23,7 +23,7 @@ const buildRedirectUrl = (
   if (params.error_description) {
     url.searchParams.set('error_description', params.error_description)
   }
-  if (params.state) {
+  if (params.state !== undefined && params.state !== null) {
     url.searchParams.set('state', params.state)
   }
   return url.toString()

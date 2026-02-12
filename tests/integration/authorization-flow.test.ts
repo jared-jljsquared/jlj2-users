@@ -41,7 +41,7 @@ test.describe('Authorization Code Flow', () => {
     expect(body).not.toContain(redirectUri)
   })
 
-  test('should return error page for missing openid scope (no redirect to unvalidated URI)', async ({
+  test('should redirect to redirect_uri with error for missing openid scope', async ({
     request,
   }) => {
     const createClientRes = await request.post('/clients', {
@@ -59,12 +59,13 @@ test.describe('Authorization Code Flow', () => {
     const redirectUri = 'https://example.com/callback'
     const res = await request.get(
       `/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=profile`,
+      { maxRedirects: 0 },
     )
 
-    expect(res.status()).toBe(400)
-    const body = await res.text()
-    expect(body).toContain('Authorization Error')
-    expect(body).toContain('invalid_scope')
+    expect(res.status()).toBe(302)
+    const location = res.headers().location
+    expect(location).toContain('https://example.com/callback')
+    expect(location).toContain('error=invalid_scope')
   })
 
   test('should redirect to redirect_uri with error for invalid scope (post-validation)', async ({
@@ -120,7 +121,7 @@ test.describe('Authorization Code Flow', () => {
     expect(body).toContain('invalid_request')
   })
 
-  test('should reject client that does not support code response type', async ({
+  test('should redirect to redirect_uri with error when client does not support code response type', async ({
     request,
   }) => {
     const createClientRes = await request.post('/clients', {
@@ -138,12 +139,13 @@ test.describe('Authorization Code Flow', () => {
     const redirectUri = 'https://example.com/callback'
     const res = await request.get(
       `/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid`,
+      { maxRedirects: 0 },
     )
 
-    expect(res.status()).toBe(400)
-    const body = await res.text()
-    expect(body).toContain('Authorization Error')
-    expect(body).toContain('unsupported_response_type')
+    expect(res.status()).toBe(302)
+    const location = res.headers().location
+    expect(location).toContain('https://example.com/callback')
+    expect(location).toContain('error=unsupported_response_type')
   })
 
   test('login page should return HTML form', async ({ request }) => {
