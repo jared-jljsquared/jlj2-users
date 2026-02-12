@@ -103,6 +103,9 @@ jobs:
       - name: Wait for ScyllaDB
         run: pnpm exec tsx scripts/wait-for-scylla.ts
 
+      - name: Run migrations
+        run: pnpm migrate up
+
       - name: Run unit tests
         run: pnpm test
 
