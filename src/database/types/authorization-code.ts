@@ -9,6 +9,7 @@ export interface AuthorizationCode {
   nonce: string | null
   expires_at: Date
   created_at: Date
+  auth_time: number | null
 }
 
 export interface AuthorizationCodeInput {
@@ -19,4 +20,5 @@ export interface AuthorizationCodeInput {
   code_challenge?: string | null
   code_challenge_method?: string | null
   nonce?: string | null
+  auth_time: number
 }

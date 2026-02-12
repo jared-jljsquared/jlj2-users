@@ -111,6 +111,7 @@ export const handleAuthorization = async (c: Context): Promise<Response> => {
     code_challenge: data.codeChallenge,
     code_challenge_method: data.codeChallengeMethod,
     nonce: data.nonce,
+    auth_time: session.iat,
   })
 
   return c.redirect(

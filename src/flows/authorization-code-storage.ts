@@ -22,10 +22,12 @@ export const generateAuthorizationCode = async (
   const now = new Date()
   const expiresAt = new Date(now.getTime() + CODE_EXPIRY_MINUTES * 60 * 1000)
 
+  const authTimeDate = new Date(input.auth_time * 1000)
+
   await client.execute(
     `INSERT INTO ${keyspace}.authorization_codes
-     (code, client_id, redirect_uri, scopes, user_id, code_challenge, code_challenge_method, nonce, expires_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     (code, client_id, redirect_uri, scopes, user_id, code_challenge, code_challenge_method, nonce, expires_at, created_at, auth_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      USING TTL ${CODE_TTL_SECONDS}`,
     [
       code,
@@ -38,6 +40,7 @@ export const generateAuthorizationCode = async (
       input.nonce ?? null,
       expiresAt,
       now,
+      authTimeDate,
     ],
   )
 
@@ -62,6 +65,12 @@ export const consumeAuthorizationCode = async (
   }
 
   const row = selectResult.rows[0]
+  const authTimeRaw = row.auth_time as Date | null | undefined
+  const authTime =
+    authTimeRaw != null
+      ? Math.floor((authTimeRaw as Date).getTime() / 1000)
+      : null
+
   const stored: AuthorizationCode = {
     code: row.code as string,
     client_id: String(row.client_id),
@@ -73,6 +82,7 @@ export const consumeAuthorizationCode = async (
     nonce: (row.nonce as string | null) ?? null,
     expires_at: row.expires_at as Date,
     created_at: row.created_at as Date,
+    auth_time: authTime,
   }
 
   if (stored.client_id !== clientId || stored.redirect_uri !== redirectUri) {

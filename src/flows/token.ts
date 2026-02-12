@@ -168,7 +168,7 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     aud: client.id,
     exp: now + ID_TOKEN_EXPIRY_SECONDS,
     iat: now,
-    auth_time: now,
+    auth_time: codeData.auth_time ?? now,
     ...(codeData.nonce && { nonce: codeData.nonce }),
     ...(codeData.scopes.includes('email') && {
       email: user.email,
