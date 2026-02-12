@@ -2,6 +2,7 @@ import type { Context } from 'hono'
 import { getOidcConfig } from '../oidc/config.ts'
 import { generateAuthorizationCode } from './authorization-code-storage.ts'
 import { validateAuthorizationRequest } from './authorization-validation.ts'
+import { escapeHtml } from './escape-html.ts'
 import { getSessionCookieName, verifySessionToken } from './session.ts'
 
 const buildRedirectUrl = (
@@ -49,14 +50,6 @@ const renderAuthorizationError = (
 </html>`
 }
 
-const escapeHtml = (s: string): string =>
-  s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-
 export const handleAuthorization = async (c: Context): Promise<Response> => {
   const params = c.req.query()
   const validation = await validateAuthorizationRequest({
@@ -89,12 +82,13 @@ export const handleAuthorization = async (c: Context): Promise<Response> => {
 
   const { data } = validation
   const sessionCookie = c.req.header('Cookie')
-  const sessionToken = sessionCookie
+  const cookieMatch = sessionCookie
     ?.split(';')
     .map((s) => s.trim())
     .find((s) => s.startsWith(`${getSessionCookieName()}=`))
-    ?.split('=')[1]
-    ?.trim()
+  const sessionToken = cookieMatch
+    ? cookieMatch.substring(cookieMatch.indexOf('=') + 1).trim()
+    : null
 
   const session = sessionToken ? verifySessionToken(sessionToken) : null
 

@@ -2,6 +2,7 @@ import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
+import { escapeHtml } from './escape-html.ts'
 import { createSessionToken, getSessionCookieName } from './session.ts'
 import { handleTokenRequest } from './token.ts'
 
@@ -47,7 +48,7 @@ flows.get('/login', (c) => {
 <body>
   <h1>Sign in</h1>
   <form method="POST" action="/login">
-    <input type="hidden" name="return_to" value="${returnTo.replace(/"/g, '&quot;')}" />
+    <input type="hidden" name="return_to" value="${escapeHtml(returnTo)}" />
     <p>
       <label>Email: <input type="email" name="email" required /></label>
     </p>
