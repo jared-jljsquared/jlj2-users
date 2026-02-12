@@ -186,6 +186,56 @@ describe('Authorization Validation', () => {
     }
   })
 
+  it('should reject public client without PKCE', async () => {
+    vi.mocked(clientService.getClientById).mockResolvedValue({
+      id: 'client-123',
+      name: 'Public Client',
+      redirectUris: ['https://example.com/callback'],
+      grantTypes: ['authorization_code'],
+      responseTypes: ['code'],
+      scopes: ['openid'],
+      tokenEndpointAuthMethod: 'none',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+      expect(result.errorDescription).toContain('PKCE')
+    }
+  })
+
+  it('should accept public client with PKCE', async () => {
+    vi.mocked(clientService.getClientById).mockResolvedValue({
+      id: 'client-123',
+      name: 'Public Client',
+      redirectUris: ['https://example.com/callback'],
+      grantTypes: ['authorization_code'],
+      responseTypes: ['code'],
+      scopes: ['openid'],
+      tokenEndpointAuthMethod: 'none',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      codeChallenge: 'challenge',
+      codeChallengeMethod: 'S256',
+    })
+    expect(result.isValid).toBe(true)
+  })
+
   it('should reject client that does not support code response type', async () => {
     vi.mocked(clientService.getClientById).mockResolvedValue({
       id: 'client-123',

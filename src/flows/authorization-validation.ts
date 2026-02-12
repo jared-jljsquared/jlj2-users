@@ -110,6 +110,19 @@ export const validateAuthorizationRequest = async (params: {
   }
 
   if (
+    client.tokenEndpointAuthMethod === 'none' &&
+    !params.codeChallenge?.trim()
+  ) {
+    return {
+      isValid: false,
+      error: 'invalid_request',
+      errorDescription: 'PKCE is required for public clients',
+      redirectUri: params.redirectUri,
+      state: params.state ?? null,
+    }
+  }
+
+  if (
     params.codeChallengeMethod &&
     !['S256', 'plain'].includes(params.codeChallengeMethod)
   ) {

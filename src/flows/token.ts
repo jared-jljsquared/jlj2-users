@@ -3,7 +3,7 @@ import {
   extractClientCredentialsFromBasicAuthHeader,
   extractClientCredentialsFromForm,
 } from '../clients/auth.ts'
-import { authenticateClient } from '../clients/service.ts'
+import { authenticateClient, getClientById } from '../clients/service.ts'
 import { getOidcConfig } from '../oidc/config.ts'
 import { signJwt } from '../tokens/jwt.ts'
 import { initializeKeys } from '../tokens/key-management.ts'
@@ -73,16 +73,37 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     extractClientCredentialsFromForm(params) ??
     extractClientCredentialsFromBasicAuthHeader(c.req.header('Authorization'))
 
-  if (!credentials) {
-    return tokenError('invalid_client', 'Client authentication required', 401)
-  }
+  let client: Awaited<ReturnType<typeof getClientById>>
 
-  const client = await authenticateClient(
-    credentials.clientId,
-    credentials.clientSecret,
-  )
-  if (!client) {
-    return tokenError('invalid_client', 'Invalid client credentials', 401)
+  if (credentials) {
+    client = await authenticateClient(
+      credentials.clientId,
+      credentials.clientSecret,
+    )
+    if (!client) {
+      return tokenError('invalid_client', 'Invalid client credentials', 401)
+    }
+    if (clientId && credentials.clientId !== clientId) {
+      return tokenError(
+        'invalid_request',
+        'client_id in body must match Authorization header',
+      )
+    }
+  } else {
+    // Public client (token_endpoint_auth_method: 'none')
+    if (!clientId) {
+      return tokenError(
+        'invalid_request',
+        'client_id is required for public clients',
+      )
+    }
+    client = await getClientById(clientId)
+    if (!client) {
+      return tokenError('invalid_client', 'Unknown client', 401)
+    }
+    if (client.tokenEndpointAuthMethod !== 'none') {
+      return tokenError('invalid_client', 'Client authentication required', 401)
+    }
   }
 
   if (!client.grantTypes.includes('authorization_code')) {
@@ -92,16 +113,14 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     )
   }
 
-  if (clientId && credentials.clientId !== clientId) {
-    return tokenError(
-      'invalid_request',
-      'client_id in body must match Authorization header',
-    )
-  }
-
   const codeData = await consumeAuthorizationCode(code, client.id, redirectUri)
   if (!codeData) {
     return tokenError('invalid_grant', 'Invalid or expired authorization code')
+  }
+
+  const isPublicClient = client.tokenEndpointAuthMethod === 'none'
+  if (isPublicClient && !codeData.code_challenge) {
+    return tokenError('invalid_grant', 'PKCE is required for public clients')
   }
 
   if (codeData.code_challenge) {

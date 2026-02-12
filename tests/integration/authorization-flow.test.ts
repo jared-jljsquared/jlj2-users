@@ -1,4 +1,8 @@
+import crypto from 'node:crypto'
 import { expect, test } from '@playwright/test'
+
+const generateCodeChallenge = (codeVerifier: string): string =>
+  crypto.createHash('sha256').update(codeVerifier, 'utf8').digest('base64url')
 
 test.describe('Authorization Code Flow', () => {
   test('should redirect to login when unauthenticated', async ({ request }) => {
@@ -216,6 +220,76 @@ test.describe('Authorization Code Flow', () => {
     expect(res.status()).toBe(400)
     const body = await res.json()
     expect(body.error).toBe('unauthorized_client')
+  })
+
+  test('public client can exchange code for tokens with PKCE (no client_secret)', async ({
+    request,
+  }) => {
+    const createClientRes = await request.post('/clients', {
+      data: {
+        name: 'Public Client',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code'],
+        responseTypes: ['code'],
+        scopes: ['openid'],
+        tokenEndpointAuthMethod: 'none',
+      },
+    })
+    expect(createClientRes.ok()).toBeTruthy()
+    const { id: clientId } = (await createClientRes.json()) as { id: string }
+
+    await request.post('/users/register', {
+      data: {
+        email: 'public-client@example.com',
+        password: 'test-password-123',
+        name: 'Public Client User',
+      },
+    })
+
+    const codeVerifier = crypto.randomBytes(32).toString('base64url')
+    const codeChallenge = generateCodeChallenge(codeVerifier)
+    const redirectUri = 'https://example.com/callback'
+    const state = 'pkce-state'
+
+    await request.post('/login', {
+      form: {
+        email: 'public-client@example.com',
+        password: 'test-password-123',
+        return_to: '/',
+      },
+      maxRedirects: 1,
+    })
+
+    const authRes = await request.get(
+      `/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid&code_challenge=${codeChallenge}&code_challenge_method=S256&state=${state}`,
+      { maxRedirects: 0 },
+    )
+
+    expect(authRes.status()).toBe(302)
+    const location = authRes.headers().location ?? ''
+    expect(location).toContain('https://example.com/callback')
+    const codeMatch = location.match(/[?&]code=([^&]+)/)
+    expect(codeMatch).toBeTruthy()
+    const code = codeMatch?.[1]
+    if (!code) throw new Error('Expected code in redirect')
+
+    const tokenRes = await request.post('/token', {
+      form: {
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code,
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+
+    expect(tokenRes.status()).toBe(200)
+    const tokenBody = (await tokenRes.json()) as Record<string, unknown>
+    expect(tokenBody).toHaveProperty('access_token')
+    expect(tokenBody).toHaveProperty('id_token')
   })
 
   test('POST /login should accept valid relative return_to', async ({
