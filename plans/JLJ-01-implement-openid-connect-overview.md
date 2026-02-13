@@ -53,15 +53,17 @@ Build user registration, authentication, and profile management capabilities.
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-07-user-management.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-07-user-management.md)
 
-### Step 8: Client Registration and Management
+### Step 8: Client Registration and Management ✅
 Implement OAuth 2.0 client registration, client credentials storage, and client authentication mechanisms.
 
-**Details:** See [JLJ-01-step-08-client-registration.md](./JLJ-01-step-08-client-registration.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-08-client-registration.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-08-client-registration.md)
 
-### Step 9: Authorization Code Flow
+### Step 9: Authorization Code Flow ✅
 Implement the OAuth 2.0 authorization code flow including authorization endpoint, token endpoint, and redirect URI handling.
 
-**Details:** See [JLJ-01-step-09-authorization-code-flow.md](./JLJ-01-step-09-authorization-code-flow.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-09-authorization-code-flow.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-09-authorization-code-flow.md)
 
 ### Step 10: Token Endpoint Implementation
 Create the token endpoint that issues access tokens, ID tokens, and refresh tokens with proper validation and security.

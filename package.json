@@ -5,9 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && pnpm check",
-    "check": "biome check .",
+    "build": "tsc",
+    "check": "pnpm fix && pnpm build && pnpm test",
     "fix": "biome check --write .",
+    "lint": "biome check .",
     "dev": "tsx watch src/app.ts",
     "start": "node ./src/app.ts",
     "test": "vitest run",

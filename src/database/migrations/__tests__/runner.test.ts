@@ -76,7 +76,7 @@ describe('Migration Runner', () => {
 
       expect(mockClient.execute).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO'),
-        ['001', 'test_migration', 'Test migration', expect.any(Date)],
+        ['001', 'test_migration', 'Test migration', expect.any(Date), null],
       )
     })
 

@@ -19,6 +19,9 @@ A step is considered complete when:
 
 | Date Completed | Step | Status | Link |
 |----------------|------|--------|------|
+| 2026-02-11 | ScyllaDB CI Investigation | ✅ Complete | [View](./scylla-ci-investigation.md) |
+| 2026-02-11 | JLJ-01 Step 9 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-09-authorization-code-flow.md) |
+| 2026-02-11 | JLJ-01 Step 8 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-08-client-registration.md) |
 | 2026-02-05 | JLJ-01 Step 7 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-07-user-management.md) |
 | 2026-02-05 | JLJ-01 Step 6 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-06-database-migrations.md) |
 | 2026-01-28 | JLJ-01 Step 5 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-05-database-connection.md) |

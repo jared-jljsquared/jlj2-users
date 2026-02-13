@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run lint (pnpm check)
-        run: pnpm check
+      - name: Run lint
+        run: pnpm lint
 
   build:
     name: Build
@@ -60,11 +60,52 @@ jobs:
         run: pnpm build
 
   test:
-    name: Tests (disabled temporarily)
-    if: false
+    name: Tests
     runs-on: ubuntu-latest
     needs: build
 
+    services:
+      scylla:
+        image: scylladb/scylla:latest
+        ports:
+          - 9042:9042
+        env:
+          SCYLLA_DEVELOPER_MODE: "1"
+
+    env:
+      SCYLLA_HOSTS: localhost
+      SCYLLA_PORT: "9042"
+      SCYLLA_KEYSPACE: jlj2_users
+      SCYLLA_LOCAL_DATACENTER: datacenter1
+      SCYLLA_ENABLE_IN_TESTS: "true"
+
     steps:
-      - run: echo "Test job temporarily disabled"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Wait for ScyllaDB
+        run: pnpm exec tsx scripts/wait-for-scylla.ts
+
+      - name: Run migrations
+        run: pnpm migrate up
+
+      - name: Run unit tests
+        run: pnpm test
 
