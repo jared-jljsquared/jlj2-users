@@ -140,6 +140,9 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
   if (!user) {
     return tokenError('server_error', 'User not found', 500)
   }
+  if (!user.isActive) {
+    return tokenError('invalid_grant', 'User account is deactivated')
+  }
 
   const config = getOidcConfig()
   const keyPair = initializeKeys()
