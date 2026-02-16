@@ -1,5 +1,10 @@
 import type { Context } from 'hono'
 import { Hono } from 'hono'
+import {
+  handleGoogleAuth,
+  handleGoogleCallback,
+} from '../auth/google-routes.ts'
+import { getGoogleConfig } from '../providers/google-config.ts'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
 import { escapeHtml } from './escape-html.ts'
@@ -39,8 +44,15 @@ flows.get('/authorize', handleAuthorization)
 
 flows.post('/token', handleTokenRequest)
 
+flows.get('/auth/google', handleGoogleAuth)
+flows.get('/auth/google/callback', handleGoogleCallback)
+
 flows.get('/login', (c) => {
   const returnTo = sanitizeReturnTo(c.req.query('return_to'))
+  const { isConfigured } = getGoogleConfig()
+  const googleAuthSection = isConfigured
+    ? `<p><a href="/auth/google?return_to=${encodeURIComponent(returnTo)}">Sign in with Google</a></p>`
+    : ''
 
   const html = `<!DOCTYPE html>
 <html>
@@ -57,6 +69,7 @@ flows.get('/login', (c) => {
     </p>
     <p><button type="submit">Sign in</button></p>
   </form>
+  ${googleAuthSection}
 </body>
 </html>`
 

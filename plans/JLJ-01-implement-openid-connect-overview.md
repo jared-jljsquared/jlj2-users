@@ -71,10 +71,11 @@ Extend the token endpoint with refresh token flow, token storage, and revocation
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-10-token-endpoint.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-10-token-endpoint.md)
 
-### Step 11: External Provider Integration - Google
+### Step 11: External Provider Integration - Google ✅
 Implement Google OIDC provider integration for accepting and validating Google ID tokens.
 
-**Details:** See [JLJ-01-step-11-external-providers.md](./JLJ-01-step-11-external-providers.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-11-external-providers-google.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-11-external-providers-google.md)
 
 ### Step 12: External Provider Integration - Microsoft
 Implement Microsoft OIDC provider integration for accepting and validating Microsoft ID tokens.
