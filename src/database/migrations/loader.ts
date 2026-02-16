@@ -14,6 +14,7 @@ import { migration as migration012 } from './migrations/012-create-clients-table
 import { migration as migration013 } from './migrations/013-create-authorization-codes-table.ts'
 import { migration as migration014 } from './migrations/014-add-auth-time-to-authorization-codes.ts'
 import { migration as migration015 } from './migrations/015-create-refresh-tokens-table.ts'
+import { migration as migration016 } from './migrations/016-create-oauth-state-table.ts'
 import type { Migration } from './types.ts'
 
 export const loadMigrations = (): Migration[] => {
@@ -33,5 +34,6 @@ export const loadMigrations = (): Migration[] => {
     migration013,
     migration014,
     migration015,
+    migration016,
   ].sort((a, b) => a.version.localeCompare(b.version))
 }

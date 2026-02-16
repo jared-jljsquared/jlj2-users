@@ -1,59 +1,24 @@
 import type { Context } from 'hono'
 import { nanoid } from 'nanoid'
 import { generateCodeChallenge, generateCodeVerifier } from '../flows/pkce.ts'
-import { createSessionToken, getSessionCookieName } from '../flows/session.ts'
-import { getOidcConfig } from '../oidc/config.ts'
+import { log } from '../plumbing/logger.ts'
 import { getXAuthorizationUrl } from '../providers/x.ts'
 import { getXConfig, X_TOKEN_URL } from '../providers/x-config.ts'
 import { authenticateWithX } from '../users/service.ts'
+import {
+  getRedirectUri,
+  sanitizeReturnTo,
+  setSessionCookieAndRedirect,
+} from './auth-utils.ts'
+import { consumeOAuthState, storeOAuthState } from './oauth-state-storage.ts'
 
-/** In-memory state store for OAuth CSRF and PKCE. TTL 10 minutes. */
-const stateStore = new Map<
-  string,
-  { returnTo: string; expiresAt: number; codeVerifier: string }
->()
-const STATE_TTL_MS = 10 * 60 * 1000
-
-const pruneExpiredState = (): void => {
-  const now = Date.now()
-  for (const [key, value] of stateStore.entries()) {
-    if (value.expiresAt < now) {
-      stateStore.delete(key)
-    }
-  }
-}
-
-const isValidReturnTo = (value: string): boolean => {
-  const normalized = value.replace(/\\/g, '/')
-  return normalized.startsWith('/') && !normalized.startsWith('//')
-}
-
-const sanitizeReturnTo = (value: string | undefined): string => {
-  const trimmed = value?.trim() ?? '/'
-  const normalized = trimmed.replace(/\\/g, '/')
-  return isValidReturnTo(normalized) ? normalized : '/'
-}
-
-const isSecureRequest = (c: Context): boolean => {
-  try {
-    const url = new URL(c.req.url)
-    if (url.protocol === 'https:') return true
-  } catch {
-    // ignore
-  }
-  return c.req.header('x-forwarded-proto') === 'https'
-}
-
-const getRedirectUri = (): string => {
-  const issuer = getOidcConfig().issuer
-  return `${issuer.replace(/\/$/, '')}/auth/x/callback`
-}
+const PROVIDER = 'x' as const
 
 /**
  * GET /auth/x
  * Redirect to X OAuth authorization URL with PKCE.
  */
-export const handleXAuth = (c: Context) => {
+export const handleXAuth = async (c: Context) => {
   const { isConfigured } = getXConfig()
   if (!isConfigured) {
     return c.json(
@@ -70,14 +35,9 @@ export const handleXAuth = (c: Context) => {
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = generateCodeChallenge(codeVerifier, 'S256')
 
-  stateStore.set(state, {
-    returnTo,
-    expiresAt: Date.now() + STATE_TTL_MS,
-    codeVerifier,
-  })
-  pruneExpiredState()
+  await storeOAuthState({ state, returnTo, codeVerifier })
 
-  const redirectUri = getRedirectUri()
+  const redirectUri = getRedirectUri(PROVIDER)
   const authUrl = getXAuthorizationUrl(redirectUri, state, codeChallenge)
   return c.redirect(authUrl, 302)
 }
@@ -104,18 +64,18 @@ export const handleXCallback = async (c: Context) => {
     return c.redirect('/login?error=missing_callback_params', 302)
   }
 
-  const stateData = stateStore.get(state)
-  stateStore.delete(state)
-  pruneExpiredState()
-
+  const stateData = await consumeOAuthState(state)
   if (!stateData) {
     return c.redirect('/login?error=invalid_state', 302)
   }
 
   const { returnTo, codeVerifier } = stateData
+  if (!codeVerifier) {
+    return c.redirect('/login?error=invalid_state', 302)
+  }
 
   try {
-    const redirectUri = getRedirectUri()
+    const redirectUri = getRedirectUri(PROVIDER)
     const credentials = Buffer.from(
       `${clientId}:${clientSecret}`,
       'utf8',
@@ -159,16 +119,12 @@ export const handleXCallback = async (c: Context) => {
     }
 
     const user = await authenticateWithX(tokenData.access_token)
-    const token = createSessionToken(user.sub)
-    const cookieName = getSessionCookieName()
-    const secureFlag = isSecureRequest(c) ? '; Secure' : ''
-    const res = c.redirect(returnTo, 302)
-    res.headers.set(
-      'Set-Cookie',
-      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=900`,
-    )
-    return res
-  } catch {
+    return setSessionCookieAndRedirect(c, user.sub, returnTo)
+  } catch (err) {
+    log({
+      message: 'X auth failed',
+      error: err instanceof Error ? err.message : String(err),
+    })
     return c.redirect(
       `/login?return_to=${encodeURIComponent(returnTo)}&error=x_auth_failed`,
       302,

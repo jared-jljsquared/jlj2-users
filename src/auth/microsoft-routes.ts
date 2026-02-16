@@ -1,58 +1,26 @@
 import type { Context } from 'hono'
 import { nanoid } from 'nanoid'
-import { createSessionToken, getSessionCookieName } from '../flows/session.ts'
-import { getOidcConfig } from '../oidc/config.ts'
+import { log } from '../plumbing/logger.ts'
 import { getMicrosoftAuthorizationUrl } from '../providers/microsoft.ts'
 import {
   getMicrosoftConfig,
   MICROSOFT_TOKEN_URL,
 } from '../providers/microsoft-config.ts'
 import { authenticateWithMicrosoft } from '../users/service.ts'
+import {
+  getRedirectUri,
+  sanitizeReturnTo,
+  setSessionCookieAndRedirect,
+} from './auth-utils.ts'
+import { consumeOAuthState, storeOAuthState } from './oauth-state-storage.ts'
 
-/** In-memory state store for OAuth CSRF protection. TTL 10 minutes. */
-const stateStore = new Map<string, { returnTo: string; expiresAt: number }>()
-const STATE_TTL_MS = 10 * 60 * 1000
-
-const pruneExpiredState = (): void => {
-  const now = Date.now()
-  for (const [key, value] of stateStore.entries()) {
-    if (value.expiresAt < now) {
-      stateStore.delete(key)
-    }
-  }
-}
-
-const isValidReturnTo = (value: string): boolean => {
-  const normalized = value.replace(/\\/g, '/')
-  return normalized.startsWith('/') && !normalized.startsWith('//')
-}
-
-const sanitizeReturnTo = (value: string | undefined): string => {
-  const trimmed = value?.trim() ?? '/'
-  const normalized = trimmed.replace(/\\/g, '/')
-  return isValidReturnTo(normalized) ? normalized : '/'
-}
-
-const isSecureRequest = (c: Context): boolean => {
-  try {
-    const url = new URL(c.req.url)
-    if (url.protocol === 'https:') return true
-  } catch {
-    // ignore
-  }
-  return c.req.header('x-forwarded-proto') === 'https'
-}
-
-const getRedirectUri = (): string => {
-  const issuer = getOidcConfig().issuer
-  return `${issuer.replace(/\/$/, '')}/auth/microsoft/callback`
-}
+const PROVIDER = 'microsoft' as const
 
 /**
  * GET /auth/microsoft
  * Redirect to Microsoft OAuth authorization URL.
  */
-export const handleMicrosoftAuth = (c: Context) => {
+export const handleMicrosoftAuth = async (c: Context) => {
   const { isConfigured } = getMicrosoftConfig()
   if (!isConfigured) {
     return c.json(
@@ -66,13 +34,10 @@ export const handleMicrosoftAuth = (c: Context) => {
 
   const returnTo = sanitizeReturnTo(c.req.query('return_to'))
   const state = nanoid(32)
-  stateStore.set(state, {
-    returnTo,
-    expiresAt: Date.now() + STATE_TTL_MS,
-  })
-  pruneExpiredState()
 
-  const redirectUri = getRedirectUri()
+  await storeOAuthState({ state, returnTo })
+
+  const redirectUri = getRedirectUri(PROVIDER)
   const authUrl = getMicrosoftAuthorizationUrl(redirectUri, state)
   return c.redirect(authUrl, 302)
 }
@@ -99,18 +64,15 @@ export const handleMicrosoftCallback = async (c: Context) => {
     return c.redirect('/login?error=missing_callback_params', 302)
   }
 
-  const stateData = stateStore.get(state)
-  stateStore.delete(state)
-  pruneExpiredState()
-
+  const stateData = await consumeOAuthState(state)
   if (!stateData) {
     return c.redirect('/login?error=invalid_state', 302)
   }
 
-  const returnTo = stateData.returnTo
+  const { returnTo } = stateData
 
   try {
-    const redirectUri = getRedirectUri()
+    const redirectUri = getRedirectUri(PROVIDER)
     const tokenResponse = await fetch(MICROSOFT_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -143,16 +105,12 @@ export const handleMicrosoftCallback = async (c: Context) => {
     }
 
     const user = await authenticateWithMicrosoft(tokenData.id_token)
-    const token = createSessionToken(user.sub)
-    const cookieName = getSessionCookieName()
-    const secureFlag = isSecureRequest(c) ? '; Secure' : ''
-    const res = c.redirect(returnTo, 302)
-    res.headers.set(
-      'Set-Cookie',
-      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=900`,
-    )
-    return res
-  } catch {
+    return setSessionCookieAndRedirect(c, user.sub, returnTo)
+  } catch (err) {
+    log({
+      message: 'Microsoft auth failed',
+      error: err instanceof Error ? err.message : String(err),
+    })
     return c.redirect(
       `/login?return_to=${encodeURIComponent(returnTo)}&error=microsoft_auth_failed`,
       302,
