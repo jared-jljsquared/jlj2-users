@@ -31,7 +31,7 @@ Create Hono middleware for validating access tokens and ID tokens in protected r
 - Access tokens from token endpoint include: iss, sub, aud, exp, iat, scope, client_id
 
 ## Success Criteria
-- [ ] Middleware validates Bearer tokens
-- [ ] Invalid tokens return 401
-- [ ] Valid tokens attach user context to request
-- [ ] Unit tests for middleware
+- [x] Middleware validates Bearer tokens
+- [x] Invalid tokens return 401
+- [x] Valid tokens attach user context to request
+- [x] Unit tests for middleware

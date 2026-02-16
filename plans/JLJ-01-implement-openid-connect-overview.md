@@ -95,10 +95,11 @@ Implement X (Twitter) OAuth 2.0 provider integration. X uses OAuth 2.0 Authoriza
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-14-external-providers-x.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-14-external-providers-x.md)
 
-### Step 15: Token Validation Middleware
+### Step 15: Token Validation Middleware ✅
 Create Hono middleware for validating access tokens and ID tokens in protected routes.
 
-**Details:** See [JLJ-01-step-14-token-validation.md](./JLJ-01-step-14-token-validation.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-15-token-validation.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-15-token-validation.md)
 
 ### Step 16: UserInfo Endpoint
 Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests.
