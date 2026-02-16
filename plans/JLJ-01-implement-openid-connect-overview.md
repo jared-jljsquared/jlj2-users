@@ -77,10 +77,11 @@ Implement Google OIDC provider integration for accepting and validating Google I
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-11-external-providers-google.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-11-external-providers-google.md)
 
-### Step 12: External Provider Integration - Microsoft
+### Step 12: External Provider Integration - Microsoft ✅
 Implement Microsoft OIDC provider integration for accepting and validating Microsoft ID tokens.
 
-**Details:** See [JLJ-01-step-11-external-providers.md](./JLJ-01-step-11-external-providers.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-12-external-providers-microsoft.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-12-external-providers-microsoft.md)
 
 ### Step 13: External Provider Integration - Facebook
 Implement Facebook OAuth 2.0 provider integration (note: Facebook uses OAuth 2.0, not full OIDC).

@@ -4,7 +4,12 @@ import {
   handleGoogleAuth,
   handleGoogleCallback,
 } from '../auth/google-routes.ts'
+import {
+  handleMicrosoftAuth,
+  handleMicrosoftCallback,
+} from '../auth/microsoft-routes.ts'
 import { getGoogleConfig } from '../providers/google-config.ts'
+import { getMicrosoftConfig } from '../providers/microsoft-config.ts'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
 import { escapeHtml } from './escape-html.ts'
@@ -46,12 +51,18 @@ flows.post('/token', handleTokenRequest)
 
 flows.get('/auth/google', handleGoogleAuth)
 flows.get('/auth/google/callback', handleGoogleCallback)
+flows.get('/auth/microsoft', handleMicrosoftAuth)
+flows.get('/auth/microsoft/callback', handleMicrosoftCallback)
 
 flows.get('/login', (c) => {
   const returnTo = sanitizeReturnTo(c.req.query('return_to'))
-  const { isConfigured } = getGoogleConfig()
-  const googleAuthSection = isConfigured
+  const { isConfigured: isGoogleConfigured } = getGoogleConfig()
+  const { isConfigured: isMicrosoftConfigured } = getMicrosoftConfig()
+  const googleAuthSection = isGoogleConfigured
     ? `<p><a href="/auth/google?return_to=${encodeURIComponent(returnTo)}">Sign in with Google</a></p>`
+    : ''
+  const microsoftAuthSection = isMicrosoftConfigured
+    ? `<p><a href="/auth/microsoft?return_to=${encodeURIComponent(returnTo)}">Sign in with Microsoft</a></p>`
     : ''
 
   const html = `<!DOCTYPE html>
@@ -70,6 +81,7 @@ flows.get('/login', (c) => {
     <p><button type="submit">Sign in</button></p>
   </form>
   ${googleAuthSection}
+  ${microsoftAuthSection}
 </body>
 </html>`
 
