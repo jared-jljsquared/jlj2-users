@@ -13,6 +13,7 @@ import { migration as migration011 } from './migrations/011-create-contact-metho
 import { migration as migration012 } from './migrations/012-create-clients-table.ts'
 import { migration as migration013 } from './migrations/013-create-authorization-codes-table.ts'
 import { migration as migration014 } from './migrations/014-add-auth-time-to-authorization-codes.ts'
+import { migration as migration015 } from './migrations/015-create-refresh-tokens-table.ts'
 import type { Migration } from './types.ts'
 
 export const loadMigrations = (): Migration[] => {
@@ -31,5 +32,6 @@ export const loadMigrations = (): Migration[] => {
     migration012,
     migration013,
     migration014,
+    migration015,
   ].sort((a, b) => a.version.localeCompare(b.version))
 }

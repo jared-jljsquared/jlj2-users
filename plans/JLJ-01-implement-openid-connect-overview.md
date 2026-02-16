@@ -60,15 +60,16 @@ Implement OAuth 2.0 client registration, client credentials storage, and client 
 **Details:** See [JLJ-01-step-08-client-registration.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-08-client-registration.md)
 
 ### Step 9: Authorization Code Flow ✅
-Implement the OAuth 2.0 authorization code flow including authorization endpoint, token endpoint, and redirect URI handling.
+Implement the OAuth 2.0 authorization code flow including authorization endpoint, token endpoint (authorization_code grant), and redirect URI handling. Step 9 delivers the full authorization code → token exchange flow with access tokens and ID tokens. Public client support (token_endpoint_auth_method: 'none') with PKCE is included.
 
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-09-authorization-code-flow.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-09-authorization-code-flow.md)
 
-### Step 10: Token Endpoint Implementation
-Create the token endpoint that issues access tokens, ID tokens, and refresh tokens with proper validation and security.
+### Step 10: Token Endpoint Extensions ✅
+Extend the token endpoint with refresh token flow, token storage, and revocation tracking. The authorization code exchange (access_token, id_token) is implemented in Step 9; Step 10 adds refresh_token grant and related features. Revocation endpoint and token introspection (8.7) are deferred to Step 16.
 
-**Details:** See [JLJ-01-step-10-token-endpoint.md](./JLJ-01-step-10-token-endpoint.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-10-token-endpoint.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-10-token-endpoint.md)
 
 ### Step 11: External Provider Integration - Google
 Implement Google OIDC provider integration for accepting and validating Google ID tokens.

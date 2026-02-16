@@ -57,6 +57,7 @@ export const getOidcConfig = (): OidcConfig => {
     tokenEndpointAuthMethodsSupported: [
       'client_secret_basic',
       'client_secret_post',
+      'none',
     ],
   }
 

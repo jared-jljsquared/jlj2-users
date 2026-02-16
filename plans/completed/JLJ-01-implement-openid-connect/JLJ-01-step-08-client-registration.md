@@ -12,7 +12,7 @@ Define the OAuth 2.0 client data structure including:
 
 - `client_id` - Unique identifier (generated on registration)
 - `client_secret` - Hashed secret for confidential clients (optional for public clients)
-- `client_secret_expires_at` - Optional expiration for client secret
+- `client_secret_expires_at` - Optional expiration for client secret (deferred; not implemented)
 - `client_name` - Human-readable client name
 - `redirect_uris` - Allowed redirect URIs for authorization code flow
 - `grant_types` - Allowed grant types (authorization_code, refresh_token, etc.)

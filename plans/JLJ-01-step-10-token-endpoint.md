@@ -53,9 +53,9 @@ Implement refresh token exchange:
 
 ### 8.7 Token Storage and Revocation Tracking
 Implement storage for:
-- Active refresh tokens
-- Revoked tokens (for token introspection)
-- Token metadata for auditing
+- Active refresh tokens ✅
+- Revoked tokens (for token introspection) — deferred to Step 16 (Token Revocation and Introspection)
+- Token metadata for auditing — metadata stored with active tokens; audit retention deferred to Step 16
 
 ## Code Samples
 
@@ -455,15 +455,22 @@ test.describe('Token Endpoint', () => {
 });
 ```
 
+## Implementation Summary
+
+- **Migration**: `015-create-refresh-tokens-table.ts` - refresh_tokens table with token_value, client_id, user_id, scopes, expires_at
+- **Types**: `src/database/types/refresh-token.ts` - RefreshToken, RefreshTokenInput
+- **Storage**: `src/flows/refresh-token-storage.ts` - generateRefreshToken, consumeRefreshToken (30-day TTL, single-use with rotation)
+- **Token**: `src/flows/token.ts` - handleRefreshTokenGrant, refresh_token in authorization_code response when client has refresh_token grant and scope includes offline_access
+
 ## Success Criteria
-- [ ] Token endpoint validates all request parameters
-- [ ] Access tokens are generated as JWTs with correct claims
-- [ ] ID tokens include all required OIDC claims
-- [ ] Refresh tokens are generated and stored securely
-- [ ] Token responses follow OAuth 2.0 format
-- [ ] Refresh token flow works correctly
-- [ ] Tokens are signed with provider's private key
-- [ ] Token expiration is properly set
-- [ ] All unit tests for token generation pass
-- [ ] Integration tests for token endpoint pass
+- [x] Token endpoint validates all request parameters
+- [x] Access tokens are generated as JWTs with correct claims
+- [x] ID tokens include all required OIDC claims
+- [x] Refresh tokens are generated and stored securely
+- [x] Token responses follow OAuth 2.0 format
+- [x] Refresh token flow works correctly (with rotation)
+- [x] Tokens are signed with provider's private key
+- [x] Token expiration is properly set
+- [x] All unit tests for token generation pass
+- [x] Integration tests for token endpoint pass
 

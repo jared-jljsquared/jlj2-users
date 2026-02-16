@@ -222,6 +222,126 @@ test.describe('Authorization Code Flow', () => {
     expect(body.error).toBe('unauthorized_client')
   })
 
+  test('authorization code with offline_access returns refresh_token and refresh flow works', async ({
+    request,
+  }) => {
+    const createClientRes = await request.post('/clients', {
+      data: {
+        name: 'Refresh Token Client',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code', 'refresh_token'],
+        responseTypes: ['code'],
+        scopes: ['openid', 'profile', 'offline_access'],
+      },
+    })
+    expect(createClientRes.ok()).toBeTruthy()
+    const { id: clientId, secret } = (await createClientRes.json()) as {
+      id: string
+      secret: string
+    }
+
+    await request.post('/users/register', {
+      data: {
+        email: 'refresh-token@example.com',
+        password: 'test-password-123',
+        name: 'Refresh Token User',
+      },
+    })
+
+    await request.post('/login', {
+      form: {
+        email: 'refresh-token@example.com',
+        password: 'test-password-123',
+        return_to: '/',
+      },
+      maxRedirects: 1,
+    })
+
+    const redirectUri = 'https://example.com/callback'
+    const authRes = await request.get(
+      `/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20offline_access&state=refresh-state`,
+      { maxRedirects: 0 },
+    )
+
+    expect(authRes.status()).toBe(302)
+    const location = authRes.headers().location ?? ''
+    const codeMatch = location.match(/[?&]code=([^&]+)/)
+    expect(codeMatch).toBeTruthy()
+    const code = codeMatch?.[1]
+    if (!code) throw new Error('Expected code in redirect')
+
+    const tokenRes = await request.post('/token', {
+      form: {
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        client_secret: secret,
+        code,
+        redirect_uri: redirectUri,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+
+    expect(tokenRes.status()).toBe(200)
+    const tokenBody = (await tokenRes.json()) as Record<string, unknown>
+    expect(tokenBody).toHaveProperty('access_token')
+    expect(tokenBody).toHaveProperty('id_token')
+    expect(tokenBody).toHaveProperty('refresh_token')
+    const refreshToken = tokenBody.refresh_token as string
+
+    const refreshRes = await request.post('/token', {
+      form: {
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: clientId,
+        client_secret: secret,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+
+    expect(refreshRes.status()).toBe(200)
+    const refreshBody = (await refreshRes.json()) as Record<string, unknown>
+    expect(refreshBody).toHaveProperty('access_token')
+    expect(refreshBody).toHaveProperty('id_token')
+    expect(refreshBody).toHaveProperty('refresh_token')
+    expect(refreshBody.refresh_token).not.toBe(refreshToken)
+  })
+
+  test('POST /token rejects refresh_token grant without client authentication', async ({
+    request,
+  }) => {
+    const createClientRes = await request.post('/clients', {
+      data: {
+        name: 'Refresh No Auth Client',
+        redirectUris: ['https://example.com/callback'],
+        grantTypes: ['authorization_code', 'refresh_token'],
+        responseTypes: ['code'],
+        scopes: ['openid', 'offline_access'],
+      },
+    })
+    expect(createClientRes.ok()).toBeTruthy()
+    const { id: clientId } = (await createClientRes.json()) as { id: string }
+
+    const res = await request.post('/token', {
+      form: {
+        grant_type: 'refresh_token',
+        refresh_token: 'some-token',
+        client_id: clientId,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+
+    expect(res.status()).toBe(401)
+    const body = await res.json()
+    expect(body.error).toBe('invalid_client')
+    expect(body.error_description).toContain('authentication required')
+  })
+
   test('public client can exchange code for tokens with PKCE (no client_secret)', async ({
     request,
   }) => {
