@@ -559,7 +559,7 @@ export const linkProviderAccount = async (
  * Find provider account by provider and provider_sub
  */
 export const findProviderAccount = async (
-  provider: 'google' | 'microsoft' | 'facebook',
+  provider: 'google' | 'microsoft' | 'facebook' | 'x',
   providerSub: string,
 ): Promise<ProviderAccount | null> => {
   const client = getClient()
@@ -642,7 +642,7 @@ export const findProviderAccountsByAccountId = async (
  * Unlink a provider account
  */
 export const unlinkProviderAccount = async (
-  provider: 'google' | 'microsoft' | 'facebook',
+  provider: 'google' | 'microsoft' | 'facebook' | 'x',
   providerSub: string,
 ): Promise<void> => {
   const client = getClient()

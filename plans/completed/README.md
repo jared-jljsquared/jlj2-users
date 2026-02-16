@@ -19,6 +19,8 @@ A step is considered complete when:
 
 | Date Completed | Step | Status | Link |
 |----------------|------|--------|------|
+| 2026-02-11 | JLJ-01 Step 14 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-14-external-providers-x.md) |
+| 2026-02-16 | JLJ-01 Step 13 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-13-external-providers-facebook.md) |
 | 2026-02-16 | JLJ-01 Step 12 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-12-external-providers-microsoft.md) |
 | 2026-02-16 | JLJ-01 Step 11 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-11-external-providers-google.md) |
 | 2026-02-11 | JLJ-01 Step 10 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-10-token-endpoint.md) |

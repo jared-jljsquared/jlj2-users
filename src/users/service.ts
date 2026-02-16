@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import type { ContactMethod } from '../database/types/contact-method.ts'
 import { log } from '../plumbing/logger.ts'
+import { validateFacebookToken } from '../providers/facebook.ts'
 import { validateGoogleToken } from '../providers/google.ts'
 import { validateMicrosoftToken } from '../providers/microsoft.ts'
+import { validateXToken } from '../providers/x.ts'
 import {
   generateMagicLinkToken,
   storeMagicLinkToken,
@@ -443,6 +445,161 @@ export const authenticateWithMicrosoft = async (
 }
 
 /**
+ * Authenticate a user with a Facebook access token.
+ * Finds or creates a user, links the Facebook account if needed, and returns the user.
+ * Note: Facebook uses OAuth 2.0 access tokens, not OIDC ID tokens.
+ */
+export const authenticateWithFacebook = async (
+  accessToken: string,
+): Promise<User> => {
+  const providerUserInfo = await validateFacebookToken(accessToken)
+
+  if (!providerUserInfo.email) {
+    throw new Error(
+      'Facebook must grant email permission. Ensure scope includes email.',
+    )
+  }
+
+  const providerSub = providerUserInfo.sub
+  const email = providerUserInfo.email.toLowerCase()
+
+  // Case 1: Provider account already linked
+  const existingProviderAccount = await findProviderAccount(
+    'facebook',
+    providerSub,
+  )
+  if (existingProviderAccount) {
+    const user = await findUserById(existingProviderAccount.account_id)
+    if (!user) {
+      throw new Error('Linked account not found')
+    }
+    if (!user.isActive) {
+      throw new Error('Account is not active')
+    }
+    await updateLastLogin(user.sub)
+    return user
+  }
+
+  // Case 2: User exists by email - link provider account
+  const existingUser = await findUserByEmail(email)
+  if (existingUser) {
+    if (!existingUser.isActive) {
+      throw new Error('Account is not active')
+    }
+    const contactMethod = await findContactMethod('email', email)
+    if (!contactMethod) {
+      throw new Error('Contact method not found')
+    }
+    await linkProviderAccount({
+      provider: 'facebook',
+      provider_sub: providerSub,
+      contact_id: contactMethod.contact_id,
+      account_id: existingUser.sub,
+    })
+    await updateLastLogin(existingUser.sub)
+    const { passwordDigest, passwordSalt, ...user } = existingUser
+    return user
+  }
+
+  // Case 3: New user - create account and link provider
+  const newUser = await createUser(
+    {
+      email,
+      name: providerUserInfo.name ?? undefined,
+    },
+    undefined,
+    undefined,
+  )
+  const contactMethod = await findContactMethod('email', email)
+  if (!contactMethod) {
+    throw new Error('Contact method not found after user creation')
+  }
+  await linkProviderAccount({
+    provider: 'facebook',
+    provider_sub: providerSub,
+    contact_id: contactMethod.contact_id,
+    account_id: newUser.sub,
+  })
+  await updateLastLogin(newUser.sub)
+  return newUser
+}
+
+/**
+ * Authenticate a user with an X access token.
+ * Finds or creates a user, links the X account if needed, and returns the user.
+ * X uses OAuth 2.0 access tokens, not OIDC ID tokens.
+ * When email is not available (X requires additional approval for email scope),
+ * uses x-{id}@placeholder.local as fallback for account creation.
+ */
+export const authenticateWithX = async (accessToken: string): Promise<User> => {
+  const providerUserInfo = await validateXToken(accessToken)
+
+  const providerSub = providerUserInfo.sub
+  const email = providerUserInfo.email
+    ? providerUserInfo.email.toLowerCase()
+    : `x-${providerSub}@placeholder.local`
+
+  // Case 1: Provider account already linked
+  const existingProviderAccount = await findProviderAccount('x', providerSub)
+  if (existingProviderAccount) {
+    const user = await findUserById(existingProviderAccount.account_id)
+    if (!user) {
+      throw new Error('Linked account not found')
+    }
+    if (!user.isActive) {
+      throw new Error('Account is not active')
+    }
+    await updateLastLogin(user.sub)
+    return user
+  }
+
+  // Case 2: User exists by email - link provider account (only when X provided email)
+  if (providerUserInfo.email) {
+    const existingUser = await findUserByEmail(email)
+    if (existingUser) {
+      if (!existingUser.isActive) {
+        throw new Error('Account is not active')
+      }
+      const contactMethod = await findContactMethod('email', email)
+      if (!contactMethod) {
+        throw new Error('Contact method not found')
+      }
+      await linkProviderAccount({
+        provider: 'x',
+        provider_sub: providerSub,
+        contact_id: contactMethod.contact_id,
+        account_id: existingUser.sub,
+      })
+      await updateLastLogin(existingUser.sub)
+      const { passwordDigest, passwordSalt, ...user } = existingUser
+      return user
+    }
+  }
+
+  // Case 3: New user - create account and link provider
+  const newUser = await createUser(
+    {
+      email,
+      name: providerUserInfo.name ?? undefined,
+    },
+    undefined,
+    undefined,
+  )
+  const contactMethod = await findContactMethod('email', email)
+  if (!contactMethod) {
+    throw new Error('Contact method not found after user creation')
+  }
+  await linkProviderAccount({
+    provider: 'x',
+    provider_sub: providerSub,
+    contact_id: contactMethod.contact_id,
+    account_id: newUser.sub,
+  })
+  await updateLastLogin(newUser.sub)
+  return newUser
+}
+
+/**
  * Get user by subject identifier
  */
 export const getUserById = async (sub: string): Promise<User | null> => {
@@ -472,7 +629,7 @@ export const updateUserProfile = async (
 export const linkProvider = async (
   accountId: string,
   contactId: string,
-  provider: 'google' | 'microsoft' | 'facebook',
+  provider: 'google' | 'microsoft' | 'facebook' | 'x',
   providerSub: string,
 ): Promise<{ provider: string; providerSub: string; linkedAt: Date }> => {
   // Check if provider account already exists
@@ -524,7 +681,7 @@ export const getLinkedProviders = async (
  */
 export const unlinkProvider = async (
   accountId: string,
-  provider: 'google' | 'microsoft' | 'facebook',
+  provider: 'google' | 'microsoft' | 'facebook' | 'x',
   providerSub: string,
 ): Promise<void> => {
   const existing = await findProviderAccount(provider, providerSub)

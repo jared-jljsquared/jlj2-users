@@ -51,6 +51,6 @@ export interface UserUpdateInput {
 
 export interface ProviderLinkInput {
   contactId: string
-  provider: 'google' | 'microsoft' | 'facebook'
+  provider: 'google' | 'microsoft' | 'facebook' | 'x'
   providerSub: string
 }

@@ -3,7 +3,7 @@
 ## Overview
 
 This plan outlines the transformation of the jlj2-users application into a fully compliant OpenID Connect (OIDC) provider that can:
-- Accept and validate ID tokens from major providers (Google, Facebook, Microsoft)
+- Accept and validate ID tokens from major providers (Google, Microsoft, Facebook, X)
 - Issue its own access tokens and ID tokens
 - Use Node.js crypto library for all encryption and signing operations (JWT implementation from scratch)
 - Use Hono web framework instead of Express
@@ -66,7 +66,7 @@ Implement the OAuth 2.0 authorization code flow including authorization endpoint
 **Details:** See [JLJ-01-step-09-authorization-code-flow.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-09-authorization-code-flow.md)
 
 ### Step 10: Token Endpoint Extensions ✅
-Extend the token endpoint with refresh token flow, token storage, and revocation tracking. The authorization code exchange (access_token, id_token) is implemented in Step 9; Step 10 adds refresh_token grant and related features. Revocation endpoint and token introspection (8.7) are deferred to Step 16.
+Extend the token endpoint with refresh token flow, token storage, and revocation tracking. The authorization code exchange (access_token, id_token) is implemented in Step 9; Step 10 adds refresh_token grant and related features. Revocation endpoint and token introspection (8.7) are deferred to Step 17.
 
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-10-token-endpoint.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-10-token-endpoint.md)
@@ -83,40 +83,47 @@ Implement Microsoft OIDC provider integration for accepting and validating Micro
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-12-external-providers-microsoft.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-12-external-providers-microsoft.md)
 
-### Step 13: External Provider Integration - Facebook
+### Step 13: External Provider Integration - Facebook ✅
 Implement Facebook OAuth 2.0 provider integration (note: Facebook uses OAuth 2.0, not full OIDC).
 
-**Details:** See [JLJ-01-step-11-external-providers.md](./JLJ-01-step-11-external-providers.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-13-external-providers-facebook.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-13-external-providers-facebook.md)
 
-### Step 14: Token Validation Middleware
+### Step 14: External Provider Integration - X ✅
+Implement X (Twitter) OAuth 2.0 provider integration. X uses OAuth 2.0 Authorization Code Flow with PKCE (access tokens, not ID tokens), similar to Facebook.
+
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-14-external-providers-x.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-14-external-providers-x.md)
+
+### Step 15: Token Validation Middleware
 Create Hono middleware for validating access tokens and ID tokens in protected routes.
 
 **Details:** See [JLJ-01-step-14-token-validation.md](./JLJ-01-step-14-token-validation.md)
 
-### Step 15: UserInfo Endpoint
+### Step 16: UserInfo Endpoint
 Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests.
 
 **Details:** See [JLJ-01-step-15-userinfo.md](./JLJ-01-step-15-userinfo.md)
 
-### Step 16: Token Revocation and Introspection
+### Step 17: Token Revocation and Introspection
 Implement token revocation endpoint and optional token introspection endpoint for token status validation.
 
 **Details:** See [JLJ-01-step-16-token-revocation.md](./JLJ-01-step-16-token-revocation.md)
 
-### Step 17: Security Hardening
+### Step 18: Security Hardening
 Implement security best practices including PKCE support, state parameter validation, nonce handling, and rate limiting.
 
 **Details:** See [JLJ-01-step-17-security-hardening.md](./JLJ-01-step-17-security-hardening.md)
 
-### Step 18: Error Handling and Logging
+### Step 19: Error Handling and Logging
 Enhance error handling with OIDC-compliant error responses and comprehensive security logging.
 
-### Step 19: Testing and Validation
+### Step 20: Testing and Validation
 Create comprehensive test suite and validate OIDC compliance using standard OIDC conformance tests.
 
 **Details:** See [JLJ-01-step-19-testing.md](./JLJ-01-step-19-testing.md)
 
-### Step 20: Documentation and Deployment
+### Step 21: Documentation and Deployment
 Create API documentation, deployment guides, and operational runbooks.
 
 ## Notes

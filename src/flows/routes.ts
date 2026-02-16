@@ -1,6 +1,10 @@
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import {
+  handleFacebookAuth,
+  handleFacebookCallback,
+} from '../auth/facebook-routes.ts'
+import {
   handleGoogleAuth,
   handleGoogleCallback,
 } from '../auth/google-routes.ts'
@@ -8,8 +12,11 @@ import {
   handleMicrosoftAuth,
   handleMicrosoftCallback,
 } from '../auth/microsoft-routes.ts'
+import { handleXAuth, handleXCallback } from '../auth/x-routes.ts'
+import { getFacebookConfig } from '../providers/facebook-config.ts'
 import { getGoogleConfig } from '../providers/google-config.ts'
 import { getMicrosoftConfig } from '../providers/microsoft-config.ts'
+import { getXConfig } from '../providers/x-config.ts'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
 import { escapeHtml } from './escape-html.ts'
@@ -51,18 +58,30 @@ flows.post('/token', handleTokenRequest)
 
 flows.get('/auth/google', handleGoogleAuth)
 flows.get('/auth/google/callback', handleGoogleCallback)
+flows.get('/auth/facebook', handleFacebookAuth)
+flows.get('/auth/facebook/callback', handleFacebookCallback)
 flows.get('/auth/microsoft', handleMicrosoftAuth)
 flows.get('/auth/microsoft/callback', handleMicrosoftCallback)
+flows.get('/auth/x', handleXAuth)
+flows.get('/auth/x/callback', handleXCallback)
 
 flows.get('/login', (c) => {
   const returnTo = sanitizeReturnTo(c.req.query('return_to'))
   const { isConfigured: isGoogleConfigured } = getGoogleConfig()
   const { isConfigured: isMicrosoftConfigured } = getMicrosoftConfig()
+  const { isConfigured: isFacebookConfigured } = getFacebookConfig()
+  const { isConfigured: isXConfigured } = getXConfig()
   const googleAuthSection = isGoogleConfigured
     ? `<p><a href="/auth/google?return_to=${encodeURIComponent(returnTo)}">Sign in with Google</a></p>`
     : ''
   const microsoftAuthSection = isMicrosoftConfigured
     ? `<p><a href="/auth/microsoft?return_to=${encodeURIComponent(returnTo)}">Sign in with Microsoft</a></p>`
+    : ''
+  const facebookAuthSection = isFacebookConfigured
+    ? `<p><a href="/auth/facebook?return_to=${encodeURIComponent(returnTo)}">Sign in with Facebook</a></p>`
+    : ''
+  const xAuthSection = isXConfigured
+    ? `<p><a href="/auth/x?return_to=${encodeURIComponent(returnTo)}">Sign in with X</a></p>`
     : ''
 
   const html = `<!DOCTYPE html>
@@ -82,6 +101,8 @@ flows.get('/login', (c) => {
   </form>
   ${googleAuthSection}
   ${microsoftAuthSection}
+  ${facebookAuthSection}
+  ${xAuthSection}
 </body>
 </html>`
 

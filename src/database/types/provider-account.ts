@@ -1,4 +1,4 @@
-export type ProviderName = 'google' | 'microsoft' | 'facebook'
+export type ProviderName = 'google' | 'microsoft' | 'facebook' | 'x'
 
 export interface ProviderAccount {
   provider: ProviderName
