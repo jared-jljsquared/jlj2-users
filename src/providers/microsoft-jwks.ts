@@ -1,7 +1,5 @@
 import crypto from 'node:crypto'
-
-const MICROSOFT_JWKS_URL =
-  'https://login.microsoftonline.com/common/discovery/v2.0/keys'
+import { MICROSOFT_JWKS_URL } from './microsoft-config.ts'
 
 /** Default cache TTL: 1 hour. */
 const DEFAULT_CACHE_TTL_MS = 60 * 60 * 1000

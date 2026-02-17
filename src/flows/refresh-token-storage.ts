@@ -6,6 +6,7 @@ import type {
   RefreshToken,
   RefreshTokenInput,
 } from '../database/types/refresh-token.ts'
+import { log } from '../plumbing/logger.ts'
 
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
 const REFRESH_TOKEN_TTL_SECONDS = REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
@@ -30,6 +31,14 @@ export const generateRefreshToken = async (
      VALUES (?, ?, ?, ?, ?, ?)
      USING TTL ${REFRESH_TOKEN_TTL_SECONDS}`,
     [token, input.client_id, input.user_id, input.scopes, expiresAt, now],
+  )
+
+  await client.execute(
+    `INSERT INTO ${keyspace}.refresh_tokens_by_user
+     (user_id, client_id, token_value)
+     VALUES (?, ?, ?)
+     USING TTL ${REFRESH_TOKEN_TTL_SECONDS}`,
+    [input.user_id, input.client_id, token],
   )
 
   return token
@@ -62,6 +71,12 @@ export const consumeRefreshToken = async (
   }
 
   if (stored.client_id !== clientId) {
+    log({
+      message: 'Refresh token client mismatch (security event)',
+      tokenClientId: stored.client_id,
+      requestClientId: clientId,
+      userId: stored.user_id,
+    })
     return null
   }
 
@@ -70,6 +85,11 @@ export const consumeRefreshToken = async (
     await client.execute(
       `DELETE FROM ${keyspace}.refresh_tokens WHERE token_value = ?`,
       [token],
+    )
+    await client.execute(
+      `DELETE FROM ${keyspace}.refresh_tokens_by_user
+       WHERE user_id = ? AND client_id = ? AND token_value = ?`,
+      [stored.user_id, stored.client_id, token],
     )
     return null
   }
@@ -80,8 +100,55 @@ export const consumeRefreshToken = async (
   )
 
   if (!deleteResult.wasApplied()) {
+    log({
+      message: 'Refresh token already used (replay attempt)',
+      userId: stored.user_id,
+      clientId: stored.client_id,
+    })
     return null
   }
 
+  await client.execute(
+    `DELETE FROM ${keyspace}.refresh_tokens_by_user
+     WHERE user_id = ? AND client_id = ? AND token_value = ?`,
+    [stored.user_id, stored.client_id, token],
+  )
+
   return stored
+}
+
+/**
+ * Revoke all refresh tokens for a given user and client.
+ * Returns the number of tokens revoked.
+ */
+export const revokeRefreshTokensByUser = async (
+  clientId: string,
+  userId: string,
+): Promise<number> => {
+  const client = getDbClient()
+  const keyspace = getKeyspace()
+
+  const selectResult = await client.execute(
+    `SELECT token_value FROM ${keyspace}.refresh_tokens_by_user
+     WHERE user_id = ? AND client_id = ?`,
+    [userId, clientId],
+  )
+
+  const tokens = selectResult.rows.map((row) => row.token_value as string)
+  const count = tokens.length
+
+  for (const token of tokens) {
+    await client.execute(
+      `DELETE FROM ${keyspace}.refresh_tokens WHERE token_value = ?`,
+      [token],
+    )
+  }
+
+  await client.execute(
+    `DELETE FROM ${keyspace}.refresh_tokens_by_user
+     WHERE user_id = ? AND client_id = ?`,
+    [userId, clientId],
+  )
+
+  return count
 }

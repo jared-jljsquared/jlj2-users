@@ -65,8 +65,24 @@ flows.get('/auth/microsoft/callback', handleMicrosoftCallback)
 flows.get('/auth/x', handleXAuth)
 flows.get('/auth/x/callback', handleXCallback)
 
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  missing_credentials: 'Email and password are required.',
+  invalid_credentials: 'Invalid email or password.',
+  missing_callback_params: 'Sign-in failed: missing callback parameters.',
+  invalid_state: 'Sign-in failed: invalid or expired state. Please try again.',
+  x_email_required:
+    'X OAuth is only allowed for tokens that include an email address. Your X integration works, but your X account did not provide an email. Please ensure you have granted email access to your X account when signing in with X.',
+}
+
 flows.get('/login', (c) => {
   const returnTo = sanitizeReturnTo(c.req.query('return_to'))
+  const errorParam = c.req.query('error')
+  const errorMessage =
+    errorParam && LOGIN_ERROR_MESSAGES[errorParam]
+      ? LOGIN_ERROR_MESSAGES[errorParam]
+      : errorParam
+        ? `Sign-in failed: ${escapeHtml(errorParam)}`
+        : null
   const { isConfigured: isGoogleConfigured } = getGoogleConfig()
   const { isConfigured: isMicrosoftConfigured } = getMicrosoftConfig()
   const { isConfigured: isFacebookConfigured } = getFacebookConfig()
@@ -89,6 +105,7 @@ flows.get('/login', (c) => {
 <head><title>Sign in</title></head>
 <body>
   <h1>Sign in</h1>
+  ${errorMessage ? `<p style="color: #c00;">${escapeHtml(errorMessage)}</p>` : ''}
   <form method="POST" action="/login">
     <input type="hidden" name="return_to" value="${escapeHtml(returnTo)}" />
     <p>

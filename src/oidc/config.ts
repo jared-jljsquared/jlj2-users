@@ -45,8 +45,12 @@ export const getOidcConfig = (): OidcConfig => {
   const issuer =
     issuerEnv !== undefined ? issuerEnv.trim() : `http://localhost:${port}`
 
+  const defaultAudience =
+    process.env.OIDC_DEFAULT_AUDIENCE?.trim() ?? 'jlj-squared-development'
+
   const config: OidcConfig = {
     issuer,
+    defaultAudience,
     authorizationEndpoint: `${issuer}/authorize`,
     tokenEndpoint: `${issuer}/token`,
     userinfoEndpoint: `${issuer}/userinfo`,

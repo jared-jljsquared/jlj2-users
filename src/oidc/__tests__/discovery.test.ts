@@ -31,7 +31,6 @@ describe('Discovery Endpoint', () => {
     expect(document).toHaveProperty('issuer')
     expect(document).toHaveProperty('authorization_endpoint')
     expect(document).toHaveProperty('token_endpoint')
-    expect(document).toHaveProperty('userinfo_endpoint')
     expect(document).toHaveProperty('jwks_uri')
     expect(document).toHaveProperty('response_types_supported')
     expect(document).toHaveProperty('scopes_supported')
@@ -71,7 +70,6 @@ describe('Discovery Endpoint', () => {
     expect(document.issuer).toBe(config.issuer)
     expect(document.authorization_endpoint).toBe(config.authorizationEndpoint)
     expect(document.token_endpoint).toBe(config.tokenEndpoint)
-    expect(document.userinfo_endpoint).toBe(config.userinfoEndpoint)
     expect(document.jwks_uri).toBe(config.jwksUri)
     expect(document.scopes_supported).toEqual(config.scopesSupported)
     expect(document.response_types_supported).toEqual(

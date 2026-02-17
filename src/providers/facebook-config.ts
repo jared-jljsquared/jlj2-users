@@ -1,9 +1,10 @@
-const FACEBOOK_GRAPH_VERSION = 'v21.0'
+const getFacebookGraphVersion = (): string =>
+  process.env.FACEBOOK_GRAPH_VERSION?.trim() ?? 'v21.0'
 
-export const FACEBOOK_AUTH_URL = `https://www.facebook.com/${FACEBOOK_GRAPH_VERSION}/dialog/oauth`
-export const FACEBOOK_TOKEN_URL = `https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/oauth/access_token`
-export const FACEBOOK_DEBUG_TOKEN_URL = `https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/debug_token`
-export const FACEBOOK_USER_INFO_URL = `https://graph.facebook.com/${FACEBOOK_GRAPH_VERSION}/me`
+export const FACEBOOK_AUTH_URL = `https://www.facebook.com/${getFacebookGraphVersion()}/dialog/oauth`
+export const FACEBOOK_TOKEN_URL = `https://graph.facebook.com/${getFacebookGraphVersion()}/oauth/access_token`
+export const FACEBOOK_DEBUG_TOKEN_URL = `https://graph.facebook.com/${getFacebookGraphVersion()}/debug_token`
+export const FACEBOOK_USER_INFO_URL = `https://graph.facebook.com/${getFacebookGraphVersion()}/me`
 
 export const FACEBOOK_SCOPES = ['email', 'public_profile'] as const
 

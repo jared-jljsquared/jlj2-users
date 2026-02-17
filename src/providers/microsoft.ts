@@ -71,7 +71,7 @@ export const getMicrosoftAuthorizationUrl = (
   redirectUri: string,
   state: string,
 ): string => {
-  const { clientId, tenant } = getMicrosoftConfig()
+  const { clientId, tenant, apiVersion } = getMicrosoftConfig()
   if (!clientId) {
     throw new Error(
       'Microsoft OAuth is not configured: MICROSOFT_CLIENT_ID required',
@@ -88,5 +88,5 @@ export const getMicrosoftAuthorizationUrl = (
   })
 
   const tenantPath = tenant || 'common'
-  return `https://login.microsoftonline.com/${tenantPath}/oauth2/v2.0/authorize?${params.toString()}`
+  return `https://login.microsoftonline.com/${tenantPath}/oauth2/${apiVersion}/authorize?${params.toString()}`
 }

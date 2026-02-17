@@ -16,6 +16,7 @@ vi.mock('../microsoft-config.ts', () => ({
     clientId: CLIENT_ID,
     clientSecret: 'test-secret',
     tenant: 'common',
+    apiVersion: 'v2.0',
     isConfigured: true,
   })),
 }))

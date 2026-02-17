@@ -1,18 +1,14 @@
 import type { Context } from 'hono'
 import { nanoid } from 'nanoid'
-import { log } from '../plumbing/logger.ts'
 import { getMicrosoftAuthorizationUrl } from '../providers/microsoft.ts'
 import {
   getMicrosoftConfig,
   MICROSOFT_TOKEN_URL,
 } from '../providers/microsoft-config.ts'
 import { authenticateWithMicrosoft } from '../users/service.ts'
-import {
-  getRedirectUri,
-  sanitizeReturnTo,
-  setSessionCookieAndRedirect,
-} from './auth-utils.ts'
-import { consumeOAuthState, storeOAuthState } from './oauth-state-storage.ts'
+import { handleOAuthCallback } from './auth-callback-handler.ts'
+import { getRedirectUri, sanitizeReturnTo } from './auth-utils.ts'
+import { storeOAuthState } from './oauth-state-storage.ts'
 
 const PROVIDER = 'microsoft' as const
 
@@ -46,74 +42,46 @@ export const handleMicrosoftAuth = async (c: Context) => {
  * GET /auth/microsoft/callback
  * Handle Microsoft OAuth callback, exchange code for tokens, validate id_token, authenticate user.
  */
-export const handleMicrosoftCallback = async (c: Context) => {
-  const { isConfigured, clientId, clientSecret } = getMicrosoftConfig()
-  if (!isConfigured) {
-    return c.redirect('/login?error=microsoft_not_configured', 302)
-  }
+export const handleMicrosoftCallback = (c: Context) =>
+  handleOAuthCallback(c, {
+    provider: 'microsoft',
+    getConfig: getMicrosoftConfig,
+    getRedirectUri: () => getRedirectUri(PROVIDER),
+    exchangeAndAuthenticate: async ({
+      code,
+      redirectUri,
+      clientId,
+      clientSecret,
+    }) => {
+      const tokenResponse = await fetch(MICROSOFT_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      })
 
-  const state = c.req.query('state')
-  const code = c.req.query('code')
-  const errorParam = c.req.query('error')
+      if (!tokenResponse.ok) {
+        const errText = await tokenResponse.text()
+        throw new Error(
+          `Token exchange failed: ${tokenResponse.status} ${errText}`,
+        )
+      }
 
-  if (errorParam) {
-    return c.redirect(`/login?error=microsoft_${errorParam}`, 302)
-  }
+      const tokenData = (await tokenResponse.json()) as {
+        id_token?: string
+        error?: string
+      }
 
-  if (!state || !code) {
-    return c.redirect('/login?error=missing_callback_params', 302)
-  }
+      if (tokenData.error || !tokenData.id_token) {
+        throw new Error(tokenData.error ?? 'No id_token in response')
+      }
 
-  const stateData = await consumeOAuthState(state)
-  if (!stateData) {
-    return c.redirect('/login?error=invalid_state', 302)
-  }
-
-  const { returnTo } = stateData
-
-  try {
-    const redirectUri = getRedirectUri(PROVIDER)
-    const tokenResponse = await fetch(MICROSOFT_TOKEN_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: redirectUri,
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-    })
-
-    if (!tokenResponse.ok) {
-      const errText = await tokenResponse.text()
-      throw new Error(
-        `Token exchange failed: ${tokenResponse.status} ${errText}`,
-      )
-    }
-
-    const tokenData = (await tokenResponse.json()) as {
-      id_token?: string
-      access_token?: string
-      error?: string
-    }
-
-    if (tokenData.error || !tokenData.id_token) {
-      throw new Error(tokenData.error ?? 'No id_token in response')
-    }
-
-    const user = await authenticateWithMicrosoft(tokenData.id_token)
-    return setSessionCookieAndRedirect(c, user.sub, returnTo)
-  } catch (err) {
-    log({
-      message: 'Microsoft auth failed',
-      error: err instanceof Error ? err.message : String(err),
-    })
-    return c.redirect(
-      `/login?return_to=${encodeURIComponent(returnTo)}&error=microsoft_auth_failed`,
-      302,
-    )
-  }
-}
+      const user = await authenticateWithMicrosoft(tokenData.id_token)
+      return { sub: user.sub }
+    },
+  })

@@ -183,7 +183,7 @@ const handleAuthorizationCodeGrant = async (
   const accessTokenPayload = {
     iss: config.issuer,
     sub: user.sub,
-    aud: client.id,
+    aud: config.defaultAudience,
     exp: now + ACCESS_TOKEN_EXPIRY_SECONDS,
     iat: now,
     scope: codeData.scopes.join(' '),
@@ -200,7 +200,7 @@ const handleAuthorizationCodeGrant = async (
   const idTokenPayload: Record<string, unknown> = {
     iss: config.issuer,
     sub: user.sub,
-    aud: client.id,
+    aud: config.defaultAudience,
     exp: now + ID_TOKEN_EXPIRY_SECONDS,
     iat: now,
     auth_time: codeData.auth_time ?? now,
@@ -301,7 +301,7 @@ const handleRefreshTokenGrant = async (
   const accessTokenPayload = {
     iss: config.issuer,
     sub: user.sub,
-    aud: client.id,
+    aud: config.defaultAudience,
     exp: now + ACCESS_TOKEN_EXPIRY_SECONDS,
     iat: now,
     scope: refreshTokenData.scopes.join(' '),
@@ -318,7 +318,7 @@ const handleRefreshTokenGrant = async (
   const idTokenPayload: Record<string, unknown> = {
     iss: config.issuer,
     sub: user.sub,
-    aud: client.id,
+    aud: config.defaultAudience,
     exp: now + ID_TOKEN_EXPIRY_SECONDS,
     iat: now,
     auth_time: now,

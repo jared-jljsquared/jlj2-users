@@ -11,7 +11,6 @@ test.describe('OIDC Discovery', () => {
     expect(document).toHaveProperty('issuer')
     expect(document).toHaveProperty('authorization_endpoint')
     expect(document).toHaveProperty('token_endpoint')
-    expect(document).toHaveProperty('userinfo_endpoint')
     expect(document).toHaveProperty('jwks_uri')
     expect(Array.isArray(document.scopes_supported)).toBe(true)
     expect(document.scopes_supported).toContain('openid')
@@ -23,7 +22,6 @@ test.describe('OIDC Discovery', () => {
 
     expect(document.authorization_endpoint).toMatch(/^https?:\/\//)
     expect(document.token_endpoint).toMatch(/^https?:\/\//)
-    expect(document.userinfo_endpoint).toMatch(/^https?:\/\//)
     expect(document.jwks_uri).toMatch(/^https?:\/\//)
   })
 

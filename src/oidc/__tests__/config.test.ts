@@ -16,11 +16,13 @@ describe('OIDC Configuration', () => {
 
   it('should use default values when env vars are not set', () => {
     delete process.env.OIDC_ISSUER
+    delete process.env.OIDC_DEFAULT_AUDIENCE
     delete process.env.PORT
 
     const config = getOidcConfig()
 
     expect(config.issuer).toBe('http://localhost:3000')
+    expect(config.defaultAudience).toBe('jlj-squared-development')
     expect(config.authorizationEndpoint).toBe('http://localhost:3000/authorize')
     expect(config.tokenEndpoint).toBe('http://localhost:3000/token')
     expect(config.userinfoEndpoint).toBe('http://localhost:3000/userinfo')
@@ -29,11 +31,13 @@ describe('OIDC Configuration', () => {
 
   it('should use environment variables when set', () => {
     process.env.OIDC_ISSUER = 'https://example.com'
+    process.env.OIDC_DEFAULT_AUDIENCE = 'custom-audience'
     process.env.PORT = '8080'
 
     const config = getOidcConfig()
 
     expect(config.issuer).toBe('https://example.com')
+    expect(config.defaultAudience).toBe('custom-audience')
     expect(config.tokenEndpoint).toBe('https://example.com/token')
     expect(config.authorizationEndpoint).toBe('https://example.com/authorize')
   })
@@ -50,6 +54,7 @@ describe('OIDC Configuration', () => {
     expect(config).toHaveProperty('responseTypesSupported')
     expect(config).toHaveProperty('grantTypesSupported')
     expect(config).toHaveProperty('tokenEndpointAuthMethodsSupported')
+    expect(config).toHaveProperty('defaultAudience')
   })
 
   it('should support openid scope', () => {

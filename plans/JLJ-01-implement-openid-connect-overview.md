@@ -102,7 +102,7 @@ Create Hono middleware for validating access tokens and ID tokens in protected r
 **Details:** See [JLJ-01-step-15-token-validation.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-15-token-validation.md)
 
 ### Step 16: UserInfo Endpoint
-Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests.
+Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests. **TODO:** userinfo_endpoint has been removed from discovery until this step is complete to avoid misleading clients.
 
 **Details:** See [JLJ-01-step-15-userinfo.md](./JLJ-01-step-15-userinfo.md)
 
@@ -126,6 +126,9 @@ Create comprehensive test suite and validate OIDC compliance using standard OIDC
 
 ### Step 21: Documentation and Deployment
 Create API documentation, deployment guides, and operational runbooks.
+
+### Step 22: Evaluate Use of Realms
+Evaluate the use of OIDC realms (e.g. site A vs site B) for access control. Assess how the `aud` claim can be used to distinguish realms, how realm selection would integrate with the authorization flow, and whether to support multiple audiences per token. Tokens currently use `jlj-squared-development` as the default audience (configurable via `OIDC_DEFAULT_AUDIENCE`).
 
 ## Notes
 

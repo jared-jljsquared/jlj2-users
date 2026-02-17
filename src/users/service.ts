@@ -524,20 +524,28 @@ export const authenticateWithFacebook = async (
   return newUser
 }
 
+/** Error thrown when X token is valid but does not include email. Used for redirect param. */
+export const X_EMAIL_REQUIRED_ERROR_PARAM = 'x_email_required' as const
+
 /**
  * Authenticate a user with an X access token.
  * Finds or creates a user, links the X account if needed, and returns the user.
  * X uses OAuth 2.0 access tokens, not OIDC ID tokens.
- * When email is not available (X requires additional approval for email scope),
- * uses x-{id}@placeholder.local as fallback for account creation.
+ * Requires email: X OAuth is only allowed for tokens that include an email address.
  */
 export const authenticateWithX = async (accessToken: string): Promise<User> => {
   const providerUserInfo = await validateXToken(accessToken)
 
+  if (!providerUserInfo.email?.trim()) {
+    const err = new Error(
+      'X OAuth is only allowed for tokens that include an email address. Your X integration works, but your X account did not provide an email. Please ensure you have granted email access to your X account when signing in with X.',
+    ) as Error & { redirectErrorParam?: string }
+    err.redirectErrorParam = X_EMAIL_REQUIRED_ERROR_PARAM
+    throw err
+  }
+
   const providerSub = providerUserInfo.sub
-  const email = providerUserInfo.email
-    ? providerUserInfo.email.toLowerCase()
-    : `x-${providerSub}@placeholder.local`
+  const email = providerUserInfo.email.toLowerCase()
 
   // Case 1: Provider account already linked
   const existingProviderAccount = await findProviderAccount('x', providerSub)
@@ -553,27 +561,25 @@ export const authenticateWithX = async (accessToken: string): Promise<User> => {
     return user
   }
 
-  // Case 2: User exists by email - link provider account (only when X provided email)
-  if (providerUserInfo.email) {
-    const existingUser = await findUserByEmail(email)
-    if (existingUser) {
-      if (!existingUser.isActive) {
-        throw new Error('Account is not active')
-      }
-      const contactMethod = await findContactMethod('email', email)
-      if (!contactMethod) {
-        throw new Error('Contact method not found')
-      }
-      await linkProviderAccount({
-        provider: 'x',
-        provider_sub: providerSub,
-        contact_id: contactMethod.contact_id,
-        account_id: existingUser.sub,
-      })
-      await updateLastLogin(existingUser.sub)
-      const { passwordDigest, passwordSalt, ...user } = existingUser
-      return user
+  // Case 2: User exists by email - link provider account
+  const existingUser = await findUserByEmail(email)
+  if (existingUser) {
+    if (!existingUser.isActive) {
+      throw new Error('Account is not active')
     }
+    const contactMethod = await findContactMethod('email', email)
+    if (!contactMethod) {
+      throw new Error('Contact method not found')
+    }
+    await linkProviderAccount({
+      provider: 'x',
+      provider_sub: providerSub,
+      contact_id: contactMethod.contact_id,
+      account_id: existingUser.sub,
+    })
+    await updateLastLogin(existingUser.sub)
+    const { passwordDigest, passwordSalt, ...user } = existingUser
+    return user
   }
 
   // Case 3: New user - create account and link provider
