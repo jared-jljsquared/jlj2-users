@@ -77,6 +77,7 @@ describe('OIDC Configuration', () => {
     expect(config.scopesSupported).toContain('openid')
     expect(config.scopesSupported).toContain('profile')
     expect(config.scopesSupported).toContain('email')
+    expect(config.scopesSupported).toContain('offline_access')
   })
 
   it('should validate configuration on startup', () => {

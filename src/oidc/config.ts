@@ -59,7 +59,7 @@ export const getOidcConfig = (): OidcConfig => {
     userinfoEndpoint: `${issuer}/userinfo`,
     revocationEndpoint: `${issuer}/revoke`,
     jwksUri: `${issuer}/.well-known/jwks.json`,
-    scopesSupported: ['openid', 'profile', 'email'],
+    scopesSupported: ['openid', 'profile', 'email', 'offline_access'],
     responseTypesSupported: ['code'],
     grantTypesSupported: ['authorization_code', 'refresh_token'],
     tokenEndpointAuthMethodsSupported: [

@@ -53,13 +53,17 @@ export const handleFacebookCallback = (c: Context) =>
       clientId,
       clientSecret,
     }) => {
-      const tokenUrl = new URL(FACEBOOK_TOKEN_URL)
-      tokenUrl.searchParams.set('client_id', clientId)
-      tokenUrl.searchParams.set('client_secret', clientSecret)
-      tokenUrl.searchParams.set('redirect_uri', redirectUri)
-      tokenUrl.searchParams.set('code', code)
-
-      const tokenResponse = await fetch(tokenUrl.toString())
+      const tokenResponse = await fetch(FACEBOOK_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      })
       if (!tokenResponse.ok) {
         const errText = await tokenResponse.text()
         throw new Error(
