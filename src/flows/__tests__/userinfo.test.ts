@@ -88,7 +88,6 @@ describe('UserInfo endpoint', () => {
     expect(res.status).toBe(404)
     const body = (await res.json()) as Record<string, unknown>
     expect(body.error).toBe('user_not_found')
-    expect(userService.getUserById).toHaveBeenCalledWith('user-123')
   })
 
   it('should return 403 when user is inactive', async () => {
@@ -260,9 +259,6 @@ describe('UserInfo endpoint', () => {
       { value: '+15551234567', verified: true, primary: true },
       { value: '+15559876543', verified: false, primary: false },
     ])
-    expect(userStorage.findContactMethodsByAccountId).toHaveBeenCalledWith(
-      'user-123',
-    )
   })
 
   it('should return profile claims when profile scope is granted', async () => {

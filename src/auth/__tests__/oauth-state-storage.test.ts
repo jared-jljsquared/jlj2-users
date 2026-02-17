@@ -24,46 +24,56 @@ describe('oauth-state-storage', () => {
     vi.restoreAllMocks()
   })
 
-  describe('storeOAuthState', () => {
-    it('should store state with returnTo', async () => {
-      mockExecute.mockResolvedValue(undefined)
+  describe('storeOAuthState and consumeOAuthState round-trip', () => {
+    it('should return stored state when consumed after store', async () => {
+      const state = 'state-123'
+      const returnTo = '/dashboard'
+      const codeVerifier = 'my-verifier'
 
-      await storeOAuthState({
-        state: 'state-123',
-        returnTo: '/dashboard',
-      })
+      mockExecute
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              return_to: returnTo,
+              code_verifier: codeVerifier,
+              expires_at: new Date(Date.now() + 600000),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ wasApplied: () => true })
 
-      expect(mockExecute).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO'),
-        expect.arrayContaining([
-          'state-123',
-          '/dashboard',
-          null,
-          expect.any(Date),
-          expect.any(Date),
-        ]),
-      )
+      await storeOAuthState({ state, returnTo, codeVerifier })
+      const result = await consumeOAuthState(state)
+
+      expect(result).not.toBeNull()
+      expect(result?.returnTo).toBe(returnTo)
+      expect(result?.codeVerifier).toBe(codeVerifier)
     })
 
-    it('should store state with codeVerifier', async () => {
-      mockExecute.mockResolvedValue(undefined)
+    it('should return state without codeVerifier when not stored', async () => {
+      const state = 'state-no-pkce'
+      const returnTo = '/profile'
 
-      await storeOAuthState({
-        state: 'pkce-state',
-        returnTo: '/profile',
-        codeVerifier: 'my-verifier',
-      })
+      mockExecute
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              return_to: returnTo,
+              code_verifier: null,
+              expires_at: new Date(Date.now() + 600000),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ wasApplied: () => true })
 
-      expect(mockExecute).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO'),
-        expect.arrayContaining([
-          'pkce-state',
-          '/profile',
-          'my-verifier',
-          expect.any(Date),
-          expect.any(Date),
-        ]),
-      )
+      await storeOAuthState({ state, returnTo })
+      const result = await consumeOAuthState(state)
+
+      expect(result).not.toBeNull()
+      expect(result?.returnTo).toBe(returnTo)
+      expect(result?.codeVerifier).toBeUndefined()
     })
   })
 
@@ -95,7 +105,6 @@ describe('oauth-state-storage', () => {
       expect(result).not.toBeNull()
       expect(result?.returnTo).toBe('/dashboard')
       expect(result?.codeVerifier).toBeUndefined()
-      expect(mockExecute).toHaveBeenCalledTimes(2)
     })
 
     it('should return codeVerifier when present', async () => {

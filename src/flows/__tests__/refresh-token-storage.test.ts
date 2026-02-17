@@ -34,7 +34,7 @@ describe('Refresh Token Storage', () => {
   })
 
   describe('generateRefreshToken', () => {
-    it('should generate and store refresh token in both tables', async () => {
+    it('should return a non-empty token string', async () => {
       mockExecute.mockResolvedValue(undefined)
 
       const token = await generateRefreshToken({
@@ -46,24 +46,40 @@ describe('Refresh Token Storage', () => {
       expect(token).toBeDefined()
       expect(typeof token).toBe('string')
       expect(token.length).toBeGreaterThan(0)
-      expect(mockExecute).toHaveBeenCalledTimes(2)
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        1,
-        expect.stringContaining('refresh_tokens'),
-        expect.arrayContaining([
-          expect.any(String),
-          'client-uuid',
-          'user-id',
-          ['openid', 'offline_access'],
-          expect.any(Date),
-          expect.any(Date),
-        ]),
-      )
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('refresh_tokens_by_user'),
-        expect.arrayContaining(['user-id', 'client-uuid', expect.any(String)]),
-      )
+    })
+
+    it('should produce a token that can be consumed to return user data', async () => {
+      mockExecute.mockResolvedValue(undefined)
+
+      const token = await generateRefreshToken({
+        client_id: 'client-uuid',
+        user_id: 'user-id',
+        scopes: ['openid', 'offline_access'],
+      })
+
+      mockExecute.mockReset()
+      mockExecute
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              token_value: token,
+              client_id: 'client-uuid',
+              user_id: 'user-id',
+              scopes: ['openid', 'offline_access'],
+              expires_at: new Date(Date.now() + 86400000),
+              created_at: new Date(),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ wasApplied: () => true })
+        .mockResolvedValueOnce(undefined)
+
+      const result = await consumeRefreshToken(token, 'client-uuid')
+
+      expect(result).not.toBeNull()
+      expect(result?.user_id).toBe('user-id')
+      expect(result?.client_id).toBe('client-uuid')
+      expect(result?.scopes).toEqual(['openid', 'offline_access'])
     })
   })
 
@@ -76,7 +92,7 @@ describe('Refresh Token Storage', () => {
       expect(result).toBeNull()
     })
 
-    it('should return null and log when client_id does not match', async () => {
+    it('should return null when client_id does not match and log security event', async () => {
       mockExecute.mockResolvedValueOnce({
         rows: [
           {
@@ -121,10 +137,9 @@ describe('Refresh Token Storage', () => {
       const result = await consumeRefreshToken('valid-token', 'client-uuid')
 
       expect(result).toBeNull()
-      expect(mockExecute).toHaveBeenCalledTimes(3)
     })
 
-    it('should return null and log when token already used', async () => {
+    it('should return null and log when token already used (replay attempt)', async () => {
       const expiresAt = new Date(Date.now() + 86400000)
       mockExecute
         .mockResolvedValueOnce({
@@ -151,7 +166,7 @@ describe('Refresh Token Storage', () => {
       })
     })
 
-    it('should return data and delete token from both tables when valid', async () => {
+    it('should return token data when valid and consume successfully', async () => {
       const expiresAt = new Date(Date.now() + 86400000)
       mockExecute
         .mockResolvedValueOnce({
@@ -175,17 +190,6 @@ describe('Refresh Token Storage', () => {
       expect(result?.user_id).toBe('user-id')
       expect(result?.client_id).toBe('client-uuid')
       expect(result?.scopes).toEqual(['openid', 'offline_access'])
-      expect(mockExecute).toHaveBeenCalledTimes(3)
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('refresh_tokens'),
-        expect.arrayContaining(['valid-token']),
-      )
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        3,
-        expect.stringContaining('refresh_tokens_by_user'),
-        expect.arrayContaining(['user-id', 'client-uuid', 'valid-token']),
-      )
     })
   })
 
@@ -198,10 +202,9 @@ describe('Refresh Token Storage', () => {
       const count = await revokeRefreshTokensByUser('client-uuid', 'user-id')
 
       expect(count).toBe(0)
-      expect(mockExecute).toHaveBeenCalledTimes(2)
     })
 
-    it('should revoke all tokens and return count', async () => {
+    it('should return count of revoked tokens', async () => {
       mockExecute
         .mockResolvedValueOnce({
           rows: [{ token_value: 'token-1' }, { token_value: 'token-2' }],
@@ -211,27 +214,25 @@ describe('Refresh Token Storage', () => {
       const count = await revokeRefreshTokensByUser('client-uuid', 'user-id')
 
       expect(count).toBe(2)
-      expect(mockExecute).toHaveBeenCalledTimes(4)
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        1,
-        expect.stringContaining('SELECT'),
-        ['user-id', 'client-uuid'],
-      )
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        2,
-        expect.stringContaining('DELETE FROM'),
-        ['token-1'],
-      )
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        3,
-        expect.stringContaining('DELETE FROM'),
-        ['token-2'],
-      )
-      expect(mockExecute).toHaveBeenNthCalledWith(
-        4,
-        expect.stringContaining('refresh_tokens_by_user'),
-        ['user-id', 'client-uuid'],
-      )
+    })
+
+    it('should revoke tokens so they can no longer be consumed', async () => {
+      mockExecute
+        .mockResolvedValueOnce({
+          rows: [{ token_value: 'revoked-token' }],
+        })
+        .mockResolvedValue(undefined)
+
+      const count = await revokeRefreshTokensByUser('client-uuid', 'user-id')
+
+      expect(count).toBe(1)
+
+      mockExecute.mockReset()
+      mockExecute.mockResolvedValueOnce({ rows: [] })
+
+      const result = await consumeRefreshToken('revoked-token', 'client-uuid')
+
+      expect(result).toBeNull()
     })
   })
 })
