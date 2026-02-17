@@ -8,7 +8,7 @@ export const handleDiscovery = (c: Context) => {
     issuer: config.issuer,
     authorization_endpoint: config.authorizationEndpoint,
     token_endpoint: config.tokenEndpoint,
-    // userinfo_endpoint omitted until implemented - see Step 16
+    userinfo_endpoint: config.userinfoEndpoint,
     jwks_uri: config.jwksUri,
     response_types_supported: config.responseTypesSupported,
     subject_types_supported: ['public'],
@@ -31,6 +31,8 @@ export const handleDiscovery = (c: Context) => {
       'nonce',
       'email',
       'email_verified',
+      'emails',
+      'phone_numbers',
       'name',
       'given_name',
       'family_name',

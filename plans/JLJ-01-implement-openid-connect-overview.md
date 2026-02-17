@@ -101,10 +101,11 @@ Create Hono middleware for validating access tokens and ID tokens in protected r
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-15-token-validation.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-15-token-validation.md)
 
-### Step 16: UserInfo Endpoint
-Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests. **TODO:** userinfo_endpoint has been removed from discovery until this step is complete to avoid misleading clients.
+### Step 16: UserInfo Endpoint ✅
+Implement the OIDC UserInfo endpoint that returns user claims for authenticated requests.
 
-**Details:** See [JLJ-01-step-15-userinfo.md](./JLJ-01-step-15-userinfo.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-16-userinfo.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-16-userinfo.md)
 
 ### Step 17: Token Revocation and Introspection
 Implement token revocation endpoint and optional token introspection endpoint for token status validation.
