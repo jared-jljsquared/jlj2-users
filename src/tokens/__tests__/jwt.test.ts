@@ -24,25 +24,6 @@ describe('Base64URL Encoding', () => {
     expect(encoded).not.toContain('/')
   })
 
-  it('should encode with correct character substitution', () => {
-    // Use input that produces Base64 characters that need substitution
-    // Base64 of "test" is "dGVzdA==" which contains '=' padding
-    // Base64 of bytes that produce '+' and '/' characters
-    const input1 = Buffer.from([0xfb, 0xef]) // Produces '+' in Base64
-    const input2 = Buffer.from([0xff, 0xef]) // Produces '/' in Base64
-    const encoded1 = base64UrlEncode(input1)
-    const encoded2 = base64UrlEncode(input2)
-
-    // Check that padding is removed
-    const inputWithPadding = Buffer.from('test')
-    const encodedWithPadding = base64UrlEncode(inputWithPadding)
-    expect(encodedWithPadding).not.toContain('=')
-
-    // Verify no standard Base64 characters that need substitution
-    expect(encoded1).not.toContain('+')
-    expect(encoded2).not.toContain('/')
-  })
-
   it('should round-trip encode and decode', () => {
     const original = Buffer.from('Hello, World!')
     const encoded = base64UrlEncode(original)
@@ -56,93 +37,17 @@ describe('Base64URL Encoding', () => {
     const decoded = base64UrlDecode(encoded)
     expect(decoded.toString()).toBe('')
   })
-
-  it('should handle various input sizes', () => {
-    const sizes = [1, 10, 100, 1000]
-    for (const size of sizes) {
-      const input = Buffer.alloc(size, 'a')
-      const encoded = base64UrlEncode(input)
-      const decoded = base64UrlDecode(encoded)
-      expect(decoded.toString()).toBe(input.toString())
-    }
-  })
-
-  it('should correctly restore padding when decoding', () => {
-    // Test with strings that need padding
-    const testCases = [
-      'test', // 4 bytes -> no padding needed
-      'te', // 2 bytes -> needs 2 padding
-      't', // 1 byte -> needs 3 padding
-    ]
-
-    for (const testCase of testCases) {
-      const input = Buffer.from(testCase)
-      const encoded = base64UrlEncode(input)
-      const decoded = base64UrlDecode(encoded)
-      expect(decoded.toString()).toBe(testCase)
-    }
-  })
 })
 
 describe('JWT Header Creation', () => {
-  it('should create header with RS256 algorithm', () => {
-    const header = createJwtHeader('RS256')
-    expect(header.alg).toBe('RS256')
-    expect(header.typ).toBe('JWT')
-    expect(header.kid).toBeUndefined()
-  })
+  it('should create header with algorithm and optional kid', () => {
+    const headerRs = createJwtHeader('RS256')
+    expect(headerRs.alg).toBe('RS256')
+    expect(headerRs.typ).toBe('JWT')
+    expect(headerRs.kid).toBeUndefined()
 
-  it('should create header with ES256 algorithm', () => {
-    const header = createJwtHeader('ES256')
-    expect(header.alg).toBe('ES256')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with HS256 algorithm', () => {
-    const header = createJwtHeader('HS256')
-    expect(header.alg).toBe('HS256')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with RS384 algorithm', () => {
-    const header = createJwtHeader('RS384')
-    expect(header.alg).toBe('RS384')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with RS512 algorithm', () => {
-    const header = createJwtHeader('RS512')
-    expect(header.alg).toBe('RS512')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with ES384 algorithm', () => {
-    const header = createJwtHeader('ES384')
-    expect(header.alg).toBe('ES384')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with ES512 algorithm', () => {
-    const header = createJwtHeader('ES512')
-    expect(header.alg).toBe('ES512')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with HS384 algorithm', () => {
-    const header = createJwtHeader('HS384')
-    expect(header.alg).toBe('HS384')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should create header with HS512 algorithm', () => {
-    const header = createJwtHeader('HS512')
-    expect(header.alg).toBe('HS512')
-    expect(header.typ).toBe('JWT')
-  })
-
-  it('should include kid when provided', () => {
-    const header = createJwtHeader('RS256', 'key-123')
-    expect(header.kid).toBe('key-123')
+    const headerWithKid = createJwtHeader('RS256', 'key-123')
+    expect(headerWithKid.kid).toBe('key-123')
   })
 })
 

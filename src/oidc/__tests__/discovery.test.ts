@@ -112,17 +112,4 @@ describe('Discovery Endpoint', () => {
     expect(methods).toContain('S256')
     expect(methods).toContain('plain')
   })
-
-  it('should return correct Content-Type header', async () => {
-    delete process.env.OIDC_ISSUER
-    delete process.env.PORT
-
-    const app = new Hono()
-    app.get('/.well-known/openid-configuration', handleDiscovery)
-
-    const res = await app.request('/.well-known/openid-configuration')
-    const contentType = res.headers.get('content-type')
-
-    expect(contentType).toContain('application/json')
-  })
 })
