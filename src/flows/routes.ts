@@ -1,5 +1,5 @@
-import type { Context } from 'hono'
 import { Hono } from 'hono'
+import { isSecureRequest, sanitizeReturnTo } from '../auth/auth-utils.ts'
 import {
   handleFacebookAuth,
   handleFacebookCallback,
@@ -25,33 +25,6 @@ import { handleRevokeRequest } from './revoke.ts'
 import { createSessionToken, getSessionCookieName } from './session.ts'
 import { handleTokenRequest } from './token.ts'
 import { handleUserInfo } from './userinfo.ts'
-
-const isSecureRequest = (c: Context): boolean => {
-  try {
-    const url = new URL(c.req.url)
-    if (url.protocol === 'https:') return true
-  } catch {
-    // ignore URL parse errors
-  }
-  return c.req.header('x-forwarded-proto') === 'https'
-}
-
-/**
- * Validate return_to to prevent open redirect.
- * Only allows relative paths (e.g. /authorize?client_id=...).
- * Rejects protocol-relative URLs (//evil.com) but allows // in query values (e.g. redirect_uri=https://...).
- * Normalizes backslash to slash before validation since browsers treat /\ as // in URLs.
- */
-const isValidReturnTo = (value: string): boolean => {
-  const normalized = value.replace(/\\/g, '/')
-  return normalized.startsWith('/') && !normalized.startsWith('//')
-}
-
-const sanitizeReturnTo = (value: string | undefined): string => {
-  const trimmed = value?.trim() ?? '/'
-  const normalized = trimmed.replace(/\\/g, '/')
-  return isValidReturnTo(normalized) ? normalized : '/'
-}
 
 const flows = new Hono()
 
@@ -88,7 +61,7 @@ flows.get('/login', (c) => {
     errorParam && LOGIN_ERROR_MESSAGES[errorParam]
       ? LOGIN_ERROR_MESSAGES[errorParam]
       : errorParam
-        ? `Sign-in failed: ${escapeHtml(errorParam)}`
+        ? `Sign-in failed: ${errorParam}`
         : null
   const { isConfigured: isGoogleConfigured } = getGoogleConfig()
   const { isConfigured: isMicrosoftConfigured } = getMicrosoftConfig()

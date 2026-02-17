@@ -24,13 +24,23 @@ export const generateRefreshToken = async (
   const expiresAt = new Date(
     now.getTime() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
   )
+  const authTime =
+    input.auth_time !== undefined ? new Date(input.auth_time * 1000) : null
 
   await client.execute(
     `INSERT INTO ${keyspace}.refresh_tokens
-     (token_value, client_id, user_id, scopes, expires_at, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)
+     (token_value, client_id, user_id, scopes, expires_at, created_at, auth_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
      USING TTL ${REFRESH_TOKEN_TTL_SECONDS}`,
-    [token, input.client_id, input.user_id, input.scopes, expiresAt, now],
+    [
+      token,
+      input.client_id,
+      input.user_id,
+      input.scopes,
+      expiresAt,
+      now,
+      authTime,
+    ],
   )
 
   await client.execute(
@@ -61,6 +71,12 @@ export const consumeRefreshToken = async (
   }
 
   const row = selectResult.rows[0]
+  const authTimeRaw = row.auth_time as Date | null | undefined
+  const authTime =
+    authTimeRaw instanceof Date
+      ? Math.floor(authTimeRaw.getTime() / 1000)
+      : null
+
   const stored: RefreshToken = {
     token: row.token_value as string,
     client_id: String(row.client_id),
@@ -68,6 +84,7 @@ export const consumeRefreshToken = async (
     scopes: (row.scopes ?? []) as string[],
     expires_at: row.expires_at as Date,
     created_at: row.created_at as Date,
+    auth_time: authTime,
   }
 
   if (stored.client_id !== clientId) {

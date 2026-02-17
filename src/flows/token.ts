@@ -236,6 +236,7 @@ const handleAuthorizationCodeGrant = async (
       client_id: client.id,
       user_id: user.sub,
       scopes,
+      auth_time: codeData.auth_time ?? now,
     })
   }
 
@@ -315,13 +316,17 @@ const handleRefreshTokenGrant = async (
     keyPair.kid,
   )
 
+  const authTime =
+    refreshTokenData.auth_time ??
+    Math.floor(refreshTokenData.created_at.getTime() / 1000)
+
   const idTokenPayload: Record<string, unknown> = {
     iss: config.issuer,
     sub: user.sub,
     aud: client.id,
     exp: now + ID_TOKEN_EXPIRY_SECONDS,
     iat: now,
-    auth_time: now,
+    auth_time: authTime,
     ...(refreshTokenData.scopes.includes('email') && {
       email: user.email,
       email_verified: user.emailVerified,
@@ -345,6 +350,7 @@ const handleRefreshTokenGrant = async (
     client_id: client.id,
     user_id: user.sub,
     scopes: refreshTokenData.scopes,
+    auth_time: authTime,
   })
 
   const response = {

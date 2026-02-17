@@ -293,6 +293,7 @@ describe('Token Endpoint', () => {
     })
 
     it('should return refresh_token when offline_access scope granted', async () => {
+      const authTime = Math.floor(Date.now() / 1000)
       vi.mocked(
         authorizationCodeStorage.consumeAuthorizationCode,
       ).mockResolvedValue({
@@ -306,7 +307,7 @@ describe('Token Endpoint', () => {
         nonce: null,
         expires_at: new Date(Date.now() + 60000),
         created_at: new Date(),
-        auth_time: Math.floor(Date.now() / 1000),
+        auth_time: authTime,
       })
 
       const app = createTokenApp()
@@ -326,6 +327,14 @@ describe('Token Endpoint', () => {
       expect(res.status).toBe(200)
       const body = (await res.json()) as Record<string, unknown>
       expect(body.refresh_token).toBe('new-refresh-token')
+      expect(refreshTokenStorage.generateRefreshToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client_id: 'client-123',
+          user_id: 'user-456',
+          scopes: ['openid', 'offline_access'],
+          auth_time: authTime,
+        }),
+      )
     })
 
     it('should accept valid PKCE with S256', async () => {
@@ -433,6 +442,7 @@ describe('Token Endpoint', () => {
     })
 
     it('should return 200 with new tokens when refresh token is valid', async () => {
+      const originalAuthTime = Math.floor(Date.now() / 1000) - 3600
       vi.mocked(refreshTokenStorage.consumeRefreshToken).mockResolvedValue({
         token: 'old-refresh-token',
         client_id: 'client-123',
@@ -440,6 +450,7 @@ describe('Token Endpoint', () => {
         scopes: ['openid', 'profile'],
         expires_at: new Date(Date.now() + 86400000),
         created_at: new Date(),
+        auth_time: originalAuthTime,
       })
 
       const app = createTokenApp()
@@ -462,6 +473,41 @@ describe('Token Endpoint', () => {
       expect(body.refresh_token).toBe('new-refresh-token')
       expect(body.token_type).toBe('Bearer')
       expect(body.expires_in).toBe(3600)
+
+      const idTokenPayload = parseJwt(body.id_token as string).payload
+      expect(idTokenPayload.auth_time).toBe(originalAuthTime)
+    })
+
+    it('should use created_at as auth_time when refresh token has no auth_time (legacy token)', async () => {
+      const createdDate = new Date(Date.now() - 7200000)
+      vi.mocked(refreshTokenStorage.consumeRefreshToken).mockResolvedValue({
+        token: 'legacy-refresh-token',
+        client_id: 'client-123',
+        user_id: 'user-456',
+        scopes: ['openid', 'profile'],
+        expires_at: new Date(Date.now() + 86400000),
+        created_at: createdDate,
+        auth_time: null,
+      })
+
+      const app = createTokenApp()
+      const res = await app.request('/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: basicAuth('client-123:secret'),
+        },
+        body: formBody({
+          grant_type: 'refresh_token',
+          refresh_token: 'legacy-refresh-token',
+        }),
+      })
+
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as Record<string, unknown>
+      const idTokenPayload = parseJwt(body.id_token as string).payload
+      const expectedAuthTime = Math.floor(createdDate.getTime() / 1000)
+      expect(idTokenPayload.auth_time).toBe(expectedAuthTime)
     })
   })
 })
