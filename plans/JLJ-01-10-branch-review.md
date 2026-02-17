@@ -119,22 +119,11 @@ PRIMARY KEY (token_value)
 
 ---
 
-### 6. Token Validation Middleware – Missing `aud` Validation
+### 6. Token Validation Middleware – Missing `aud` Validation ✅ Addressed
 
-**Issue:** The middleware validates `iss`, `exp`, and `nbf` but does not validate `aud`:
+**Issue:** The middleware validated `iss`, `exp`, and `nbf` but did not validate `aud`.
 
-```typescript
-const validateAccessTokenClaims = (payload, issuer) => {
-  // validates iss, exp, nbf - but NOT aud
-}
-```
-
-**Concerns:**
-
-- A token issued for Client A could be used to access resources intended for Client B
-- OIDC/OAuth 2.0 best practice is to validate audience for access tokens
-
-**Recommendation:** Add optional `aud` validation. For resource servers, accept a configurable list of valid audiences and validate `payload.aud` against it.
+**Fix:** `requireAccessToken` is now a factory that accepts optional `validAudiences`. When provided, the token `aud` claim (string or array) must include at least one valid audience. OIDC provider endpoints (e.g. UserInfo) use `requireAccessToken()` with no options; resource servers use `requireAccessToken({ validAudiences: ['api.example.com'] })`.
 
 ---
 
@@ -220,7 +209,7 @@ if (!payload) { ... }
 |------|----------|-----------------|--------|
 | In-memory state | High | Use shared storage or document single-instance limitation | Done – ScyllaDB |
 | Error logging | Medium | Log errors in auth callbacks | Done |
-| `aud` validation | Medium | Add optional audience validation in middleware | Pending |
+| `aud` validation | Medium | Add optional audience validation in middleware | Done |
 | Code duplication | Medium | Extract shared auth route logic | Done |
 | Facebook endpoint | Low | Verify against current Facebook docs | Pending |
 | Refresh token PK | Low | Consider schema for user/client revocation | Pending |

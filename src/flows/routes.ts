@@ -21,6 +21,7 @@ import { getXConfig } from '../providers/x-config.ts'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
 import { escapeHtml } from './escape-html.ts'
+import { handleRevokeRequest } from './revoke.ts'
 import { createSessionToken, getSessionCookieName } from './session.ts'
 import { handleTokenRequest } from './token.ts'
 import { handleUserInfo } from './userinfo.ts'
@@ -58,7 +59,9 @@ flows.get('/authorize', handleAuthorization)
 
 flows.post('/token', handleTokenRequest)
 
-flows.get('/userinfo', requireAccessToken, handleUserInfo)
+flows.post('/revoke', handleRevokeRequest)
+
+flows.get('/userinfo', requireAccessToken(), handleUserInfo)
 
 flows.get('/auth/google', handleGoogleAuth)
 flows.get('/auth/google/callback', handleGoogleCallback)

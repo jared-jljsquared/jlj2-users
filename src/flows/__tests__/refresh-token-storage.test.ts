@@ -4,6 +4,7 @@ import * as loggerModule from '../../plumbing/logger.ts'
 import {
   consumeRefreshToken,
   generateRefreshToken,
+  revokeRefreshToken,
   revokeRefreshTokensByUser,
 } from '../refresh-token-storage.ts'
 
@@ -190,6 +191,66 @@ describe('Refresh Token Storage', () => {
       expect(result?.user_id).toBe('user-id')
       expect(result?.client_id).toBe('client-uuid')
       expect(result?.scopes).toEqual(['openid', 'offline_access'])
+    })
+  })
+
+  describe('revokeRefreshToken', () => {
+    it('should return false when token not found', async () => {
+      mockExecute.mockResolvedValueOnce({ rows: [] })
+
+      const result = await revokeRefreshToken('invalid-token', 'client-uuid')
+
+      expect(result).toBe(false)
+    })
+
+    it('should return false when client_id does not match', async () => {
+      mockExecute.mockResolvedValueOnce({
+        rows: [
+          {
+            token_value: 'valid-token',
+            client_id: 'other-client',
+            user_id: 'user-id',
+            scopes: ['openid'],
+            expires_at: new Date(Date.now() + 86400000),
+            created_at: new Date(),
+          },
+        ],
+      })
+
+      const result = await revokeRefreshToken('valid-token', 'client-uuid')
+
+      expect(result).toBe(false)
+    })
+
+    it('should return true and delete token when valid', async () => {
+      mockExecute
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              token_value: 'valid-token',
+              client_id: 'client-uuid',
+              user_id: 'user-id',
+              scopes: ['openid'],
+              expires_at: new Date(Date.now() + 86400000),
+              created_at: new Date(),
+            },
+          ],
+        })
+        .mockResolvedValue(undefined)
+
+      const result = await revokeRefreshToken('valid-token', 'client-uuid')
+
+      expect(result).toBe(true)
+
+      mockExecute.mockReset()
+      mockExecute.mockResolvedValueOnce({ rows: [] })
+
+      const consumeResult = await consumeRefreshToken(
+        'valid-token',
+        'client-uuid',
+      )
+
+      expect(consumeResult).toBeNull()
     })
   })
 

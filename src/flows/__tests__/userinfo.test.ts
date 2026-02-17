@@ -37,7 +37,7 @@ describe('UserInfo endpoint', () => {
 
   const createApp = () => {
     const app = new Hono()
-    app.get('/userinfo', requireAccessToken, handleUserInfo)
+    app.get('/userinfo', requireAccessToken(), handleUserInfo)
     return app
   }
 

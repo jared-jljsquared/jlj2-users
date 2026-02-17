@@ -5,7 +5,7 @@ import { signJwt } from '../../tokens/jwt.ts'
 import { clearKeyStore, initializeKeys } from '../../tokens/key-management.ts'
 import { requireAccessToken, requireScope } from '../require-access-token.ts'
 
-describe('requireAccessToken', () => {
+describe('requireAccessToken()', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('requireAccessToken', () => {
 
   it('should return 401 when Authorization header is missing', async () => {
     const app = new Hono()
-    app.get('/protected', requireAccessToken, (c) => {
+    app.get('/protected', requireAccessToken(), (c) => {
       const payload = c.get('accessTokenPayload')
       return c.json({ sub: payload?.sub })
     })
@@ -37,7 +37,7 @@ describe('requireAccessToken', () => {
 
   it('should return 401 when Authorization header does not use Bearer scheme', async () => {
     const app = new Hono()
-    app.get('/protected', requireAccessToken, (c) =>
+    app.get('/protected', requireAccessToken(), (c) =>
       c.json({ sub: c.get('accessTokenPayload')?.sub }),
     )
 
@@ -49,7 +49,7 @@ describe('requireAccessToken', () => {
 
   it('should return 401 when token is invalid', async () => {
     const app = new Hono()
-    app.get('/protected', requireAccessToken, (c) =>
+    app.get('/protected', requireAccessToken(), (c) =>
       c.json({ sub: c.get('accessTokenPayload')?.sub }),
     )
 
@@ -83,7 +83,7 @@ describe('requireAccessToken', () => {
     )
 
     const app = new Hono()
-    app.get('/protected', requireAccessToken, (c) => {
+    app.get('/protected', requireAccessToken(), (c) => {
       const payload = c.get('accessTokenPayload')
       return c.json({ sub: payload?.sub, scope: payload?.scope })
     })
@@ -122,7 +122,7 @@ describe('requireAccessToken', () => {
     )
 
     const app = new Hono()
-    app.get('/protected', requireAccessToken, (c) =>
+    app.get('/protected', requireAccessToken(), (c) =>
       c.json({ sub: c.get('accessTokenPayload')?.sub }),
     )
 
@@ -156,7 +156,7 @@ describe('requireAccessToken', () => {
     )
 
     const app = new Hono()
-    app.get('/protected', requireAccessToken, (c) =>
+    app.get('/protected', requireAccessToken(), (c) =>
       c.json({ sub: c.get('accessTokenPayload')?.sub }),
     )
 
@@ -165,6 +165,82 @@ describe('requireAccessToken', () => {
     })
 
     expect(res.status).toBe(401)
+  })
+
+  it('should return 401 when validAudiences is set and token aud does not match', async () => {
+    process.env.OIDC_ISSUER = 'http://localhost:3000'
+    clearConfigCache()
+
+    const keyPair = initializeKeys()
+    const issuer = getOidcConfig().issuer
+    const now = Math.floor(Date.now() / 1000)
+
+    const token = signJwt(
+      {
+        iss: issuer,
+        sub: 'user-123',
+        aud: 'wrong-audience',
+        exp: now + 3600,
+        iat: now,
+        scope: 'openid',
+        client_id: 'client-456',
+      },
+      keyPair.privateKey,
+      'RS256',
+      keyPair.kid,
+    )
+
+    const app = new Hono()
+    app.get(
+      '/protected',
+      requireAccessToken({ validAudiences: ['api.example.com'] }),
+      (c) => c.json({ sub: c.get('accessTokenPayload')?.sub }),
+    )
+
+    const res = await app.request('/protected', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    expect(res.status).toBe(401)
+  })
+
+  it('should pass when validAudiences is set and token aud matches', async () => {
+    process.env.OIDC_ISSUER = 'http://localhost:3000'
+    clearConfigCache()
+
+    const keyPair = initializeKeys()
+    const issuer = getOidcConfig().issuer
+    const now = Math.floor(Date.now() / 1000)
+
+    const token = signJwt(
+      {
+        iss: issuer,
+        sub: 'user-123',
+        aud: 'client-456',
+        exp: now + 3600,
+        iat: now,
+        scope: 'openid',
+        client_id: 'client-456',
+      },
+      keyPair.privateKey,
+      'RS256',
+      keyPair.kid,
+    )
+
+    const app = new Hono()
+    app.get(
+      '/protected',
+      requireAccessToken({ validAudiences: ['client-456'] }),
+      (c) => c.json({ sub: c.get('accessTokenPayload')?.sub }),
+    )
+
+    const res = await app.request('/protected', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as Record<string, unknown>
+    expect(body.sub).toBe('user-123')
   })
 })
 
@@ -208,7 +284,7 @@ describe('requireScope', () => {
     )
 
     const app = new Hono()
-    app.get('/profile', requireAccessToken, requireScope('profile'), (c) =>
+    app.get('/profile', requireAccessToken(), requireScope('profile'), (c) =>
       c.json({ sub: c.get('accessTokenPayload')?.sub }),
     )
 
@@ -245,7 +321,7 @@ describe('requireScope', () => {
     )
 
     const app = new Hono()
-    app.get('/profile', requireAccessToken, requireScope('profile'), (c) =>
+    app.get('/profile', requireAccessToken(), requireScope('profile'), (c) =>
       c.json({ sub: c.get('accessTokenPayload')?.sub }),
     )
 

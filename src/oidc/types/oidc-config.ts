@@ -4,6 +4,7 @@ export interface OidcConfig {
   authorizationEndpoint: string
   tokenEndpoint: string
   userinfoEndpoint: string
+  revocationEndpoint: string
   jwksUri: string
   registrationEndpoint?: string
   scopesSupported: string[]

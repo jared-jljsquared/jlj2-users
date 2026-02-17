@@ -26,6 +26,7 @@ describe('OIDC Configuration', () => {
     expect(config.authorizationEndpoint).toBe('http://localhost:3000/authorize')
     expect(config.tokenEndpoint).toBe('http://localhost:3000/token')
     expect(config.userinfoEndpoint).toBe('http://localhost:3000/userinfo')
+    expect(config.revocationEndpoint).toBe('http://localhost:3000/revoke')
     expect(config.jwksUri).toBe('http://localhost:3000/.well-known/jwks.json')
   })
 
@@ -42,6 +43,18 @@ describe('OIDC Configuration', () => {
     expect(config.authorizationEndpoint).toBe('https://example.com/authorize')
   })
 
+  it('should fall back to default audience when OIDC_DEFAULT_AUDIENCE is empty or whitespace', () => {
+    process.env.OIDC_ISSUER = 'http://localhost:3000'
+
+    process.env.OIDC_DEFAULT_AUDIENCE = ''
+    clearConfigCache()
+    expect(getOidcConfig().defaultAudience).toBe('jlj-squared-development')
+
+    process.env.OIDC_DEFAULT_AUDIENCE = '   '
+    clearConfigCache()
+    expect(getOidcConfig().defaultAudience).toBe('jlj-squared-development')
+  })
+
   it('should include all required configuration fields', () => {
     const config = getOidcConfig()
 
@@ -49,6 +62,7 @@ describe('OIDC Configuration', () => {
     expect(config).toHaveProperty('authorizationEndpoint')
     expect(config).toHaveProperty('tokenEndpoint')
     expect(config).toHaveProperty('userinfoEndpoint')
+    expect(config).toHaveProperty('revocationEndpoint')
     expect(config).toHaveProperty('jwksUri')
     expect(config).toHaveProperty('scopesSupported')
     expect(config).toHaveProperty('responseTypesSupported')

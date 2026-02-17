@@ -118,6 +118,49 @@ export const consumeRefreshToken = async (
 }
 
 /**
+ * Revoke a single refresh token by token value.
+ * Verifies client_id matches before revoking.
+ * Returns true if token was found and revoked, false otherwise.
+ * Per RFC 7009, callers should return 200 even when token was invalid.
+ */
+export const revokeRefreshToken = async (
+  token: string,
+  clientId: string,
+): Promise<boolean> => {
+  const client = getDbClient()
+  const keyspace = getKeyspace()
+
+  const selectResult = await client.execute(
+    `SELECT * FROM ${keyspace}.refresh_tokens WHERE token_value = ?`,
+    [token],
+  )
+
+  if (selectResult.rows.length === 0) {
+    return false
+  }
+
+  const row = selectResult.rows[0]
+  const storedClientId = String(row.client_id)
+  const userId = row.user_id as string
+
+  if (storedClientId !== clientId) {
+    return false
+  }
+
+  await client.execute(
+    `DELETE FROM ${keyspace}.refresh_tokens WHERE token_value = ?`,
+    [token],
+  )
+  await client.execute(
+    `DELETE FROM ${keyspace}.refresh_tokens_by_user
+     WHERE user_id = ? AND client_id = ? AND token_value = ?`,
+    [userId, clientId, token],
+  )
+
+  return true
+}
+
+/**
  * Revoke all refresh tokens for a given user and client.
  * Returns the number of tokens revoked.
  */

@@ -107,10 +107,11 @@ Implement the OIDC UserInfo endpoint that returns user claims for authenticated 
 **Status:** ✅ Complete  
 **Details:** See [JLJ-01-step-16-userinfo.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-16-userinfo.md)
 
-### Step 17: Token Revocation and Introspection
-Implement token revocation endpoint and optional token introspection endpoint for token status validation.
+### Step 17: Token Revocation and Introspection ✅
+Implement token revocation endpoint (RFC 7009). Introspection endpoint deferred.
 
-**Details:** See [JLJ-01-step-16-token-revocation.md](./JLJ-01-step-16-token-revocation.md)
+**Status:** ✅ Complete (revocation); introspection deferred  
+**Details:** See [JLJ-01-step-17-token-revocation.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-17-token-revocation.md)
 
 ### Step 18: Security Hardening
 Implement security best practices including PKCE support, state parameter validation, nonce handling, and rate limiting.

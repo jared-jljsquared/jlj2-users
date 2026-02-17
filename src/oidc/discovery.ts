@@ -9,6 +9,7 @@ export const handleDiscovery = (c: Context) => {
     authorization_endpoint: config.authorizationEndpoint,
     token_endpoint: config.tokenEndpoint,
     userinfo_endpoint: config.userinfoEndpoint,
+    revocation_endpoint: config.revocationEndpoint,
     jwks_uri: config.jwksUri,
     response_types_supported: config.responseTypesSupported,
     subject_types_supported: ['public'],

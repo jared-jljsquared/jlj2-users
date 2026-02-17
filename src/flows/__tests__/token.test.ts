@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as clientService from '../../clients/service.ts'
 import { clearConfigCache } from '../../oidc/config.ts'
+import { parseJwt } from '../../tokens/jwt.ts'
 import { clearKeyStore, initializeKeys } from '../../tokens/key-management.ts'
 import * as userService from '../../users/service.ts'
 import * as authorizationCodeStorage from '../authorization-code-storage.ts'
@@ -70,7 +71,6 @@ describe('Token Endpoint', () => {
   beforeEach(() => {
     process.env = { ...originalEnv }
     process.env.OIDC_ISSUER = 'http://localhost:3000'
-    process.env.OIDC_DEFAULT_AUDIENCE = 'test-audience'
     clearConfigCache()
     clearKeyStore()
     initializeKeys()
@@ -287,6 +287,9 @@ describe('Token Endpoint', () => {
       expect(body.id_token).toBeDefined()
       expect(typeof body.id_token).toBe('string')
       expect(body.scope).toBe('openid profile')
+
+      const idTokenPayload = parseJwt(body.id_token as string).payload
+      expect(idTokenPayload.aud).toBe('client-123')
     })
 
     it('should return refresh_token when offline_access scope granted', async () => {
