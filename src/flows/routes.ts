@@ -1,5 +1,8 @@
 import { Hono } from 'hono'
-import { isSecureRequest, sanitizeReturnTo } from '../auth/auth-utils.ts'
+import {
+  sanitizeReturnTo,
+  setSessionCookieAndRedirect,
+} from '../auth/auth-utils.ts'
 import {
   handleFacebookAuth,
   handleFacebookCallback,
@@ -22,7 +25,6 @@ import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
 import { escapeHtml } from './escape-html.ts'
 import { handleRevokeRequest } from './revoke.ts'
-import { createSessionToken, getSessionCookieName } from './session.ts'
 import { handleTokenRequest } from './token.ts'
 import { handleUserInfo } from './userinfo.ts'
 
@@ -121,15 +123,7 @@ flows.post('/login', async (c) => {
 
   try {
     const user = await authenticateUser({ email, password })
-    const token = createSessionToken(user.sub)
-    const cookieName = getSessionCookieName()
-    const secureFlag = isSecureRequest(c) ? '; Secure' : ''
-    const res = c.redirect(returnTo, 302)
-    res.headers.set(
-      'Set-Cookie',
-      `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Lax${secureFlag}; Max-Age=900`,
-    )
-    return res
+    return setSessionCookieAndRedirect(c, user.sub, returnTo)
   } catch {
     return c.redirect(
       `/login?return_to=${encodeURIComponent(returnTo)}&error=invalid_credentials`,
