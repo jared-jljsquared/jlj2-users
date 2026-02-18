@@ -176,39 +176,3 @@ export const revokeRefreshToken = async (
 
   return true
 }
-
-/**
- * Revoke all refresh tokens for a given user and client.
- * Returns the number of tokens revoked.
- */
-export const revokeRefreshTokensByUser = async (
-  clientId: string,
-  userId: string,
-): Promise<number> => {
-  const client = getDbClient()
-  const keyspace = getKeyspace()
-
-  const selectResult = await client.execute(
-    `SELECT token_value FROM ${keyspace}.refresh_tokens_by_user
-     WHERE user_id = ? AND client_id = ?`,
-    [userId, clientId],
-  )
-
-  const tokens = selectResult.rows.map((row) => row.token_value as string)
-  const count = tokens.length
-
-  for (const token of tokens) {
-    await client.execute(
-      `DELETE FROM ${keyspace}.refresh_tokens WHERE token_value = ?`,
-      [token],
-    )
-  }
-
-  await client.execute(
-    `DELETE FROM ${keyspace}.refresh_tokens_by_user
-     WHERE user_id = ? AND client_id = ?`,
-    [userId, clientId],
-  )
-
-  return count
-}

@@ -5,7 +5,6 @@ import {
   consumeRefreshToken,
   generateRefreshToken,
   revokeRefreshToken,
-  revokeRefreshTokensByUser,
 } from '../refresh-token-storage.ts'
 
 const mockExecute = vi.fn()
@@ -251,49 +250,6 @@ describe('Refresh Token Storage', () => {
       )
 
       expect(consumeResult).toBeNull()
-    })
-  })
-
-  describe('revokeRefreshTokensByUser', () => {
-    it('should return 0 when no tokens for user and client', async () => {
-      mockExecute
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce(undefined)
-
-      const count = await revokeRefreshTokensByUser('client-uuid', 'user-id')
-
-      expect(count).toBe(0)
-    })
-
-    it('should return count of revoked tokens', async () => {
-      mockExecute
-        .mockResolvedValueOnce({
-          rows: [{ token_value: 'token-1' }, { token_value: 'token-2' }],
-        })
-        .mockResolvedValue(undefined)
-
-      const count = await revokeRefreshTokensByUser('client-uuid', 'user-id')
-
-      expect(count).toBe(2)
-    })
-
-    it('should revoke tokens so they can no longer be consumed', async () => {
-      mockExecute
-        .mockResolvedValueOnce({
-          rows: [{ token_value: 'revoked-token' }],
-        })
-        .mockResolvedValue(undefined)
-
-      const count = await revokeRefreshTokensByUser('client-uuid', 'user-id')
-
-      expect(count).toBe(1)
-
-      mockExecute.mockReset()
-      mockExecute.mockResolvedValueOnce({ rows: [] })
-
-      const result = await consumeRefreshToken('revoked-token', 'client-uuid')
-
-      expect(result).toBeNull()
     })
   })
 })

@@ -58,7 +58,10 @@ export const handleOAuthCallback = async (
   const errorParam = c.req.query('error')
 
   if (errorParam) {
-    return c.redirect(`/login?error=${provider}_${errorParam}`, 302)
+    return c.redirect(
+      `/login?error=${encodeURIComponent(`${provider}_${errorParam}`)}`,
+      302,
+    )
   }
 
   if (!state || !code) {
@@ -98,7 +101,7 @@ export const handleOAuthCallback = async (
         ? (err as Error & { redirectErrorParam: string }).redirectErrorParam
         : `${provider}_auth_failed`
     return c.redirect(
-      `/login?return_to=${encodeURIComponent(returnTo)}&error=${errorParam}`,
+      `/login?return_to=${encodeURIComponent(returnTo)}&error=${encodeURIComponent(errorParam)}`,
       302,
     )
   }
