@@ -49,3 +49,10 @@ Existing refresh tokens in `refresh_tokens` will not have entries in `refresh_to
 - [x] revokeRefreshTokensByUser revokes all tokens for (user_id, client_id)
 - [x] Existing tests pass
 - [x] Unit tests for revokeRefreshTokensByUser
+
+## Future Use
+
+`revokeRefreshTokensByUser` is exported for planned use in:
+- User deactivation (revoke all sessions when account is disabled)
+- Password change (optional: revoke all sessions on credential change)
+- Sign-out-all-devices (user-initiated bulk revocation)
