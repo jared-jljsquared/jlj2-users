@@ -49,6 +49,18 @@ describe('httpsEnforcement', () => {
     expect(res.status).toBe(200)
   })
 
+  it('should allow IPv6 localhost [::1] over HTTP in production', async () => {
+    process.env.NODE_ENV = 'production'
+
+    const app = new Hono()
+    app.use('*', httpsEnforcement)
+    app.get('/test', (c) => c.json({ ok: true }))
+
+    const res = await app.request('http://[::1]:3000/test')
+
+    expect(res.status).toBe(200)
+  })
+
   it('should reject non-HTTPS non-localhost in production', async () => {
     process.env.NODE_ENV = 'production'
 
