@@ -117,7 +117,7 @@ Implement token revocation endpoint (RFC 7009). Introspection endpoint deferred.
 Implement security best practices including PKCE support, state parameter validation, nonce handling, rate limiting, security headers, HTTPS enforcement, and input validation.
 
 **Status:** ✅ Complete  
-**Details:** See [2026-02-18-JLJ-01-step-18-security-hardening.md](./completed/2026-02-18-JLJ-01-step-18-security-hardening.md)
+**Details:** See [JLJ-01-step-18-security-hardening.md](./completed/JLJ-01-step-18-security-hardening.md)
 
 ### Step 19: Error Handling and Logging
 Enhance error handling with OIDC-compliant error responses and comprehensive security logging.
