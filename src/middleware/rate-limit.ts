@@ -1,3 +1,4 @@
+import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Context, Next } from 'hono'
 import { isDatabaseEnabledForEnv } from '../database/client.ts'
 import { buildRateLimitKey, checkAndIncrement } from './rate-limit-storage.ts'
@@ -33,11 +34,13 @@ const getClientIp = (c: Context): string => {
   const cfIp = c.req.header('cf-connecting-ip')
   if (cfIp) return cfIp
   try {
-    const url = new URL(c.req.url)
-    return url.hostname ?? 'unknown'
+    const info = getConnInfo(c)
+    const address = info?.remote?.address
+    if (address) return address
   } catch {
-    return 'unknown'
+    // getConnInfo requires Node server bindings; unavailable in tests or non-Node runtimes
   }
+  return 'unknown'
 }
 
 export interface RateLimitOptions {
