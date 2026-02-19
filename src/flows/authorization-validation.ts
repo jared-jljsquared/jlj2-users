@@ -64,8 +64,6 @@ export const validateAuthorizationRequest = async (params: {
       isValid: false,
       error: 'invalid_request',
       errorDescription: 'state exceeds maximum length',
-      redirectUri: params.redirectUri,
-      state: params.state ?? null,
     }
   }
 
@@ -74,8 +72,6 @@ export const validateAuthorizationRequest = async (params: {
       isValid: false,
       error: 'invalid_request',
       errorDescription: 'scope exceeds maximum length',
-      redirectUri: params.redirectUri,
-      state: params.state ?? null,
     }
   }
 

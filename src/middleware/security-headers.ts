@@ -1,14 +1,5 @@
 import type { Context, Next } from 'hono'
-
-const isHttps = (c: Context): boolean => {
-  try {
-    const url = new URL(c.req.url)
-    if (url.protocol === 'https:') return true
-  } catch {
-    // ignore
-  }
-  return c.req.header('x-forwarded-proto') === 'https'
-}
+import { isHttps } from './is-https.ts'
 
 /**
  * Security headers middleware. Sets standard security headers on all responses.

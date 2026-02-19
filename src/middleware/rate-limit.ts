@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono'
 import { isDatabaseEnabledForEnv } from '../database/client.ts'
-import { checkAndIncrement } from './rate-limit-storage.ts'
+import { buildRateLimitKey, checkAndIncrement } from './rate-limit-storage.ts'
 
 interface RateLimitRecord {
   count: number
@@ -110,7 +110,11 @@ export const rateLimit = (
 
     pruneExpired(windowMs)
 
-    const key = identifier
+    const key = buildRateLimitKey({
+      scope,
+      tenantId,
+      identifier,
+    })
     const now = Date.now()
 
     let record = store.get(key)

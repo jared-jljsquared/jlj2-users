@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono'
+import { isHttps } from './is-https.ts'
 
 const isLocalhost = (c: Context): boolean => {
   try {
@@ -8,16 +9,6 @@ const isLocalhost = (c: Context): boolean => {
   } catch {
     return false
   }
-}
-
-const isHttps = (c: Context): boolean => {
-  try {
-    const url = new URL(c.req.url)
-    if (url.protocol === 'https:') return true
-  } catch {
-    // ignore
-  }
-  return c.req.header('x-forwarded-proto') === 'https'
 }
 
 /**
