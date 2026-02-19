@@ -290,6 +290,11 @@ describe('Token Endpoint', () => {
 
       const idTokenPayload = parseJwt(body.id_token as string).payload
       expect(idTokenPayload.aud).toBe('client-123')
+      expect(idTokenPayload.jti).toBeDefined()
+      expect(typeof idTokenPayload.jti).toBe('string')
+      expect(idTokenPayload.jti).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      )
     })
 
     it('should return refresh_token when offline_access scope granted', async () => {

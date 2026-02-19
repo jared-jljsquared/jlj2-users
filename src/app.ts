@@ -6,6 +6,8 @@ import clients from './clients/routes.ts'
 import { initializeDatabase, shutdownDatabase } from './database/client.ts'
 import { checkDatabaseHealth } from './database/health.ts'
 import flows from './flows/routes.ts'
+import { httpsEnforcement } from './middleware/https-enforcement.ts'
+import { securityHeaders } from './middleware/security-headers.ts'
 import { getOidcConfig } from './oidc/config.ts'
 import { handleDiscovery } from './oidc/discovery.ts'
 import { handleJwks } from './oidc/jwks.ts'
@@ -16,6 +18,9 @@ import users from './users/routes.ts'
 const { name, version } = info
 
 const app = new Hono()
+
+app.use('*', securityHeaders)
+app.use('*', httpsEnforcement)
 const port = Number(process.env.PORT) || 3000
 
 app.get('/', (c) => {

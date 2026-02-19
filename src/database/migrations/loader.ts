@@ -17,6 +17,7 @@ import { migration as migration015 } from './migrations/015-create-refresh-token
 import { migration as migration016 } from './migrations/016-create-oauth-state-table.ts'
 import { migration as migration017 } from './migrations/017-create-refresh-tokens-by-user-table.ts'
 import { migration as migration018 } from './migrations/018-add-auth-time-to-refresh-tokens.ts'
+import { migration as migration019 } from './migrations/019-create-rate-limit-counters-table.ts'
 import type { Migration } from './types.ts'
 
 export const loadMigrations = (): Migration[] => {
@@ -39,5 +40,6 @@ export const loadMigrations = (): Migration[] => {
     migration016,
     migration017,
     migration018,
+    migration019,
   ].sort((a, b) => a.version.localeCompare(b.version))
 }

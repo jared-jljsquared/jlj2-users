@@ -16,6 +16,7 @@ import {
   handleMicrosoftCallback,
 } from '../auth/microsoft-routes.ts'
 import { handleXAuth, handleXCallback } from '../auth/x-routes.ts'
+import { rateLimit } from '../middleware/rate-limit.ts'
 import { requireAccessToken } from '../middleware/require-access-token.ts'
 import { getFacebookConfig } from '../providers/facebook-config.ts'
 import { getGoogleConfig } from '../providers/google-config.ts'
@@ -29,6 +30,8 @@ import { handleTokenRequest } from './token.ts'
 import { handleUserInfo } from './userinfo.ts'
 
 const flows = new Hono()
+
+flows.use('*', rateLimit({ windowMs: 60_000, maxRequests: 100 }))
 
 flows.get('/authorize', handleAuthorization)
 
