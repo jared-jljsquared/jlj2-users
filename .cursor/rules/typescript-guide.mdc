@@ -22,3 +22,4 @@ When generating or refactoring code the AI assistant must:
 *   **Prefer `rg` over `grep`.**
 *   **Prefer `pnpm` over `npm` for all package management tasks"**
 *   **If a new dependency is needed update the package.json file and then prompt the user to run `pnpm install` before proceeding**
+*   **When marking something as completed use today's date rather than a copy of the last item's date**
