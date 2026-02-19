@@ -206,6 +206,49 @@ export const validateFacebookToken = async (
 };
 ```
 
+### X (Twitter) OAuth 2.0 Integration
+
+**Note:** X uses OAuth 2.0 Authorization Code Flow with PKCE. They provide access tokens, not ID tokens. Enable "Sign in with X" in your X Developer Portal app settings.
+
+#### X-Specific Configuration
+```typescript
+// src/providers/x-config.ts
+export const X_CONFIG = {
+  authUrl: 'https://twitter.com/i/oauth2/authorize',
+  tokenUrl: 'https://api.twitter.com/2/oauth2/token',
+  userInfoUrl: 'https://api.twitter.com/2/users/me',
+  clientId: process.env.X_CLIENT_ID || '',
+  clientSecret: process.env.X_CLIENT_SECRET || '',
+  scopes: ['tweet.read', 'users.read', 'offline.access'],
+};
+```
+
+#### X Token Validation
+- X uses OAuth 2.0 with PKCE (code_verifier required for token exchange)
+- Access tokens are validated by calling the users/me endpoint
+- No JWKS - uses API calls for validation
+- Email may not be available; X requires additional approval for email scope
+
+#### Code Sample: X Token Validation
+```typescript
+// src/providers/x.ts
+export const validateXToken = async (
+  accessToken: string
+): Promise<ProviderUserInfo> => {
+  const response = await fetch('https://api.twitter.com/2/users/me?user.fields=profile_image_url', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error('Invalid X token');
+  const userData = await response.json();
+  return {
+    sub: userData.data.id,
+    email: userData.data.email ?? '',
+    name: userData.data.name,
+    picture: userData.data.profile_image_url,
+  };
+};
+```
+
 ## Unified Provider Interface
 
 ### Base Provider Interface
@@ -449,14 +492,14 @@ test.describe('External Provider Integration', () => {
 ```
 
 ## Success Criteria
-- [ ] Google ID tokens can be validated
+- [x] Google ID tokens can be validated (Step 11 complete)
 - [ ] Microsoft ID tokens can be validated
 - [ ] Facebook access tokens can be validated
 - [ ] User information is correctly extracted from all providers
-- [ ] Provider accounts can be linked to local user accounts
-- [ ] Public keys are fetched and cached appropriately
-- [ ] Token validation includes all security checks
-- [ ] Provider-specific claim formats are handled correctly
-- [ ] All unit tests for provider validation pass
-- [ ] Integration tests for provider callbacks pass
+- [x] Provider accounts can be linked to local user accounts (Google)
+- [x] Public keys are fetched and cached appropriately (Google JWKS)
+- [x] Token validation includes all security checks (iss, aud, exp, nbf, signature)
+- [x] Provider-specific claim formats are handled correctly (Google)
+- [x] All unit tests for Google provider validation pass
+- [ ] Integration tests for provider callbacks pass (deferred)
 

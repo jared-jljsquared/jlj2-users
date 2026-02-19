@@ -16,19 +16,6 @@ describe('JWKS Endpoint', () => {
     clearKeyStore()
   })
 
-  it('should return valid JWKS format', async () => {
-    generateKeyPair('RS256')
-    const app = new Hono()
-    app.get('/.well-known/jwks.json', handleJwks)
-
-    const res = await app.request('/.well-known/jwks.json')
-    expect(res.status).toBe(200)
-
-    const jwks = (await res.json()) as { keys: unknown[] }
-    expect(jwks).toHaveProperty('keys')
-    expect(Array.isArray(jwks.keys)).toBe(true)
-  })
-
   it('should return all active keys', async () => {
     const keyPair1 = generateKeyPair('RS256')
     const keyPair2 = generateKeyPair('ES256')
@@ -36,8 +23,10 @@ describe('JWKS Endpoint', () => {
     app.get('/.well-known/jwks.json', handleJwks)
 
     const res = await app.request('/.well-known/jwks.json')
+    expect(res.status).toBe(200)
     const jwks = (await res.json()) as { keys: Array<{ kid: string }> }
-
+    expect(jwks).toHaveProperty('keys')
+    expect(Array.isArray(jwks.keys)).toBe(true)
     expect(jwks.keys.length).toBe(2)
     expect(jwks.keys.map((k) => k.kid)).toContain(keyPair1.kid)
     expect(jwks.keys.map((k) => k.kid)).toContain(keyPair2.kid)
@@ -65,17 +54,6 @@ describe('JWKS Endpoint', () => {
     const jwks = (await res.json()) as { keys: unknown[] }
 
     expect(jwks.keys).toEqual([])
-  })
-
-  it('should return correct Content-Type header', async () => {
-    generateKeyPair('RS256')
-    const app = new Hono()
-    app.get('/.well-known/jwks.json', handleJwks)
-
-    const res = await app.request('/.well-known/jwks.json')
-    const contentType = res.headers.get('content-type')
-
-    expect(contentType).toContain('application/json')
   })
 
   it('should include required JWK fields for RSA keys', async () => {

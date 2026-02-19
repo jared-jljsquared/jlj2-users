@@ -19,6 +19,14 @@ A step is considered complete when:
 
 | Date Completed | Step | Status | Link |
 |----------------|------|--------|------|
+| 2026-02-11 | JLJ-01 Step 17 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-17-token-revocation.md) |
+| 2026-02-11 | JLJ-01 Step 16 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-16-userinfo.md) |
+| 2026-02-11 | JLJ-01 Step 15 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-15-token-validation.md) |
+| 2026-02-11 | JLJ-01 Step 14 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-14-external-providers-x.md) |
+| 2026-02-16 | JLJ-01 Step 13 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-13-external-providers-facebook.md) |
+| 2026-02-16 | JLJ-01 Step 12 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-12-external-providers-microsoft.md) |
+| 2026-02-16 | JLJ-01 Step 11 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-11-external-providers-google.md) |
+| 2026-02-11 | JLJ-01 Step 10 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-10-token-endpoint.md) |
 | 2026-02-11 | ScyllaDB CI Investigation | ✅ Complete | [View](./scylla-ci-investigation.md) |
 | 2026-02-11 | JLJ-01 Step 9 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-09-authorization-code-flow.md) |
 | 2026-02-11 | JLJ-01 Step 8 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-08-client-registration.md) |

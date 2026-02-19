@@ -1,7 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { generateCodeChallenge, verifyCodeVerifier } from '../pkce.ts'
+import {
+  generateCodeChallenge,
+  generateCodeVerifier,
+  verifyCodeVerifier,
+} from '../pkce.ts'
 
 describe('PKCE', () => {
+  describe('generateCodeVerifier', () => {
+    it('should generate base64url encoded random string', () => {
+      const verifier = generateCodeVerifier()
+      expect(verifier).toBeDefined()
+      expect(verifier.length).toBeGreaterThanOrEqual(43)
+      expect(verifier.length).toBeLessThanOrEqual(128)
+      expect(verifier).toMatch(/^[A-Za-z0-9_-]+$/)
+    })
+
+    it('should generate unique values', () => {
+      const v1 = generateCodeVerifier()
+      const v2 = generateCodeVerifier()
+      expect(v1).not.toBe(v2)
+    })
+  })
+
   describe('verifyCodeVerifier', () => {
     it('should verify S256 code verifier', () => {
       const verifier = 'test-verifier-123'

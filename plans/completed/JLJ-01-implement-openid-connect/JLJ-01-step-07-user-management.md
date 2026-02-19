@@ -5,44 +5,48 @@ Build user registration, authentication, and profile management capabilities. Th
 
 ## Sub-steps
 
-### 5.1 User Data Model
+### 7.1 User Data Model ✅
 Define the user data structure including:
 - Unique user identifier (sub claim)
 - Email address
 - Password hash (for local auth)
 - Profile information (name, picture, etc.)
-- Linked external provider accounts
+- Linked external provider accounts (via provider_accounts table)
 - Email verification status
 - Created/updated timestamps
+- isActive for account deactivation
 
-### 5.2 User Storage Interface
-Create an abstraction layer for user storage (initially in-memory, later can be replaced with database).
+### 7.2 User Storage ✅
+Database-backed storage (ScyllaDB):
+- accounts, contact_methods, contact_methods_by_account, contact_methods_by_id
+- provider_accounts for external provider linking
+- findUserById, findUserByEmail, createUser, authenticateUser
 
-### 5.3 User Registration
+### 7.3 User Registration ✅
 Implement user registration with:
 - Email validation
-- Password hashing using Node.js crypto library (scrypt)
-- Salt generation using nanoid
-- Duplicate email checking
-- User ID generation
+- Password hashing using Node.js crypto (scrypt)
+- Salt generation (stored in password_salt)
+- Duplicate email checking (tryInsertContactMethod)
+- User ID generation (UUID)
 
-### 5.4 User Authentication
+### 7.4 User Authentication ✅
 Implement local authentication:
-- Email/password verification
-- Password hash comparison
-- Session management (optional, or stateless with tokens)
+- Email/password verification via authenticateUser
+- Password hash comparison (timing-safe)
+- Rejects inactive accounts (isActive check)
+- Session created by flows/routes.ts on POST /login
 
-### 5.5 External Provider Account Linking
-Implement functionality to link external provider accounts (Google, Microsoft, Facebook) to local user accounts.
+### 7.5 External Provider Account Linking ✅
+Implement functionality to link external provider accounts (Google, Microsoft, Facebook) to local user accounts via provider_accounts table and findProviderAccountsByAccountId.
 
-### 5.6 User Profile Management
-Implement endpoints for:
-- Retrieving user profile
-- Updating user profile
-- Managing linked accounts
+### 7.6 User Profile Management ✅
+Implement endpoints:
+- GET /users/:sub - Retrieve user profile
+- PUT /users/:sub - Update user profile
 
-### 5.7 User Lookup by Subject
-Implement efficient lookup of users by subject identifier (sub claim) for token generation.
+### 7.7 User Lookup by Subject ✅
+Implement efficient lookup via findUserById (account_id) for token generation.
 
 ## Code Samples
 
@@ -336,14 +340,21 @@ test.describe('User Registration', () => {
 });
 ```
 
+## Implementation Summary
+
+- **Types**: `src/users/types/user.ts` - User, UserWithPassword
+- **Storage**: `src/users/storage.ts` - findUserByEmail, findUserById, createUser, findContactMethod, findProviderAccountsByAccountId
+- **Service**: `src/users/service.ts` - authenticateUser, createUser (via storage)
+- **Routes**: `src/users/routes.ts` - POST /users/register, GET/PUT /users/:sub
+
 ## Success Criteria
-- [ ] User data model defined with all necessary fields
-- [ ] User registration works with email validation
-- [ ] Password hashing uses Node.js crypto
-- [ ] User authentication verifies passwords correctly
-- [ ] External provider accounts can be linked to users
-- [ ] User profiles can be retrieved and updated
-- [ ] Users can be looked up by subject identifier
-- [ ] All unit tests for user management pass
-- [ ] Integration tests for user endpoints pass
+- [x] User data model defined with all necessary fields
+- [x] User registration works with email validation
+- [x] Password hashing uses Node.js crypto (scrypt)
+- [x] User authentication verifies passwords correctly
+- [x] External provider accounts can be linked to users (provider_accounts table)
+- [x] User profiles can be retrieved and updated
+- [x] Users can be looked up by subject identifier
+- [x] All unit tests for user management pass
+- [x] Integration tests for user endpoints pass
 

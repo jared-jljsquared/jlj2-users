@@ -45,18 +45,27 @@ export const getOidcConfig = (): OidcConfig => {
   const issuer =
     issuerEnv !== undefined ? issuerEnv.trim() : `http://localhost:${port}`
 
+  const defaultAudienceRaw = process.env.OIDC_DEFAULT_AUDIENCE?.trim()
+  const defaultAudience =
+    defaultAudienceRaw && defaultAudienceRaw.length > 0
+      ? defaultAudienceRaw
+      : 'jlj-squared-development'
+
   const config: OidcConfig = {
     issuer,
+    defaultAudience,
     authorizationEndpoint: `${issuer}/authorize`,
     tokenEndpoint: `${issuer}/token`,
     userinfoEndpoint: `${issuer}/userinfo`,
+    revocationEndpoint: `${issuer}/revoke`,
     jwksUri: `${issuer}/.well-known/jwks.json`,
-    scopesSupported: ['openid', 'profile', 'email'],
+    scopesSupported: ['openid', 'profile', 'email', 'offline_access'],
     responseTypesSupported: ['code'],
     grantTypesSupported: ['authorization_code', 'refresh_token'],
     tokenEndpointAuthMethodsSupported: [
       'client_secret_basic',
       'client_secret_post',
+      'none',
     ],
   }
 

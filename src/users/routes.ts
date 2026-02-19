@@ -358,6 +358,7 @@ users.delete('/:sub/providers/:provider/:providerSub', async (c) => {
       | 'google'
       | 'microsoft'
       | 'facebook'
+      | 'x'
     const providerSub = c.req.param('providerSub')
 
     if (!sub || !provider || !providerSub) {
@@ -370,10 +371,13 @@ users.delete('/:sub/providers/:provider/:providerSub', async (c) => {
     if (
       provider !== 'google' &&
       provider !== 'microsoft' &&
-      provider !== 'facebook'
+      provider !== 'facebook' &&
+      provider !== 'x'
     ) {
       return c.json(
-        { error: 'Invalid provider. Must be google, microsoft, or facebook' },
+        {
+          error: 'Invalid provider. Must be google, microsoft, facebook, or x',
+        },
         400,
       )
     }

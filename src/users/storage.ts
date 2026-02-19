@@ -230,6 +230,32 @@ export const findUserById = async (accountId: string): Promise<User | null> => {
 }
 
 /**
+ * Find all contact methods (emails and phones) for an account.
+ */
+export const findContactMethodsByAccountId = async (
+  accountId: string,
+): Promise<ContactMethod[]> => {
+  const client = getClient()
+  const keyspace = getKeyspace()
+
+  const result = await client.execute(
+    `SELECT * FROM ${keyspace}.contact_methods_by_account WHERE account_id = ?`,
+    [accountId],
+  )
+
+  return result.rows.map((row) => ({
+    account_id: String(row.account_id),
+    contact_id: String(row.contact_id),
+    contact_type: row.contact_type as 'email' | 'phone',
+    contact_value: row.contact_value as string,
+    is_primary: row.is_primary as boolean,
+    verified_at: row.verified_at as Date | undefined,
+    created_at: row.created_at as Date,
+    updated_at: row.updated_at as Date,
+  }))
+}
+
+/**
  * Find contact method by type and value (email or phone)
  */
 export const findContactMethod = async (
@@ -559,7 +585,7 @@ export const linkProviderAccount = async (
  * Find provider account by provider and provider_sub
  */
 export const findProviderAccount = async (
-  provider: 'google' | 'microsoft' | 'facebook',
+  provider: 'google' | 'microsoft' | 'facebook' | 'x',
   providerSub: string,
 ): Promise<ProviderAccount | null> => {
   const client = getClient()
@@ -642,7 +668,7 @@ export const findProviderAccountsByAccountId = async (
  * Unlink a provider account
  */
 export const unlinkProviderAccount = async (
-  provider: 'google' | 'microsoft' | 'facebook',
+  provider: 'google' | 'microsoft' | 'facebook' | 'x',
   providerSub: string,
 ): Promise<void> => {
   const client = getClient()

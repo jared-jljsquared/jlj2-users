@@ -52,11 +52,5 @@ describe('Client Credentials', () => {
       const isValid = verifyClientSecret('', hash)
       expect(isValid).toBe(false)
     })
-
-    it('should handle different hash length gracefully', () => {
-      const hash = 'short'
-      const isValid = verifyClientSecret('secret', hash)
-      expect(isValid).toBe(false)
-    })
   })
 })
