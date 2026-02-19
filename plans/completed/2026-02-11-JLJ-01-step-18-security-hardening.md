@@ -1,6 +1,6 @@
 # Step 18: Security Hardening
 
-**Status:** In Progress  
+**Status:** Complete  
 **Branch:** (current)
 
 ## Overview
@@ -33,12 +33,14 @@ Implement security best practices to protect against common OAuth 2.0 and OIDC a
 - [x] Allow localhost for development
 - [x] Check x-forwarded-proto when behind proxy
 
-### 18.5 Input Validation
-- [ ] Review and strengthen existing validation (redirect URIs, etc.)
-- [ ] Document validation coverage
+### 18.5 Input Validation ✅
+- [x] Review and strengthen existing validation (redirect URIs, etc.)
+- [x] Document validation coverage
 
 ## Files Created/Modified
 
+- `src/flows/input-validation.ts` - shared validation helpers
+- `src/flows/authorization-validation.ts` - strengthened with format/length checks
 - `src/middleware/rate-limit.ts` - rate limiting
 - `src/middleware/security-headers.ts` - security headers
 - `src/middleware/https-enforcement.ts` - HTTPS check

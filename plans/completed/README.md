@@ -19,6 +19,11 @@ A step is considered complete when:
 
 | Date Completed | Step | Status | Link |
 |----------------|------|--------|------|
+| 2026-02-11 | JLJ-01 Step 18 | ✅ Complete | [View](./2026-02-11-JLJ-01-step-18-security-hardening.md) |
+| 2026-02-11 | JLJ-01 Step 18.5 Input Validation | ✅ Complete | [View](./2026-02-11-JLJ-01-step-18-5-input-validation.md) |
+| 2026-02-11 | Rate Limiting with ScyllaDB | ✅ Complete | [View](./2026-02-11-rate-limit-scylla.md) |
+| 2026-02-11 | Refresh Token Revoke by User | ✅ Complete | [View](./2026-02-11-refresh-token-revoke-by-user.md) |
+| 2026-02-11 | JLJ-01 Step 17 Security Hardening (design) | ✅ Complete | [View](./2026-02-11-JLJ-01-step-17-security-hardening.md) |
 | 2026-02-11 | JLJ-01 Step 17 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-17-token-revocation.md) |
 | 2026-02-11 | JLJ-01 Step 16 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-16-userinfo.md) |
 | 2026-02-11 | JLJ-01 Step 15 | ✅ Complete | [View](./JLJ-01-implement-openid-connect/JLJ-01-step-15-token-validation.md) |
