@@ -74,6 +74,46 @@ describe('rateLimit (ScyllaDB)', () => {
     expect(res.headers.get('Retry-After')).toBeDefined()
   })
 
+  it('should prefer cf-connecting-ip over x-forwarded-for when both present', async () => {
+    const app = new Hono()
+    app.use(
+      '*',
+      rateLimit({
+        scope: 'test-cf-ip',
+        windowMs: 60_000,
+        maxRequests: 2,
+      }),
+    )
+    app.get('/test', (c) => c.json({ ok: true }))
+
+    // Client spoofs x-forwarded-for; cf-connecting-ip has real IP from Cloudflare
+    await app.request('/test', {
+      headers: {
+        'x-forwarded-for': '1.2.3.4',
+        'cf-connecting-ip': 'real-client-ip',
+      },
+    })
+    await app.request('/test', {
+      headers: {
+        'x-forwarded-for': '1.2.3.4',
+        'cf-connecting-ip': 'real-client-ip',
+      },
+    })
+    const blocked = await app.request('/test', {
+      headers: {
+        'x-forwarded-for': '1.2.3.4',
+        'cf-connecting-ip': 'real-client-ip',
+      },
+    })
+    expect(blocked.status).toBe(429)
+
+    // Spoofed IP alone would allow more requests; real IP is correctly rate-limited
+    const spoofedDifferent = await app.request('/test', {
+      headers: { 'x-forwarded-for': '5.6.7.8' },
+    })
+    expect(spoofedDifferent.status).toBe(200)
+  })
+
   it('should track limits per IP', async () => {
     const app = new Hono()
     app.use(

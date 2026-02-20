@@ -43,4 +43,26 @@ describe('securityHeaders', () => {
       'max-age=31536000',
     )
   })
+
+  it('should set security headers when handler returns raw Response', async () => {
+    const app = new Hono()
+    app.use('*', securityHeaders)
+    app.get(
+      '/raw',
+      () =>
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+
+    const res = await app.request('/raw')
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff')
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY')
+    expect(res.headers.get('Referrer-Policy')).toBe(
+      'strict-origin-when-cross-origin',
+    )
+  })
 })

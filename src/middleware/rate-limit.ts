@@ -4,13 +4,15 @@ import { parseNumber } from '../plumbing/parse-number.ts'
 import { checkAndIncrement } from './rate-limit-storage.ts'
 
 const getClientIp = (c: Context): string => {
+  // Prefer cf-connecting-ip: set by Cloudflare, cannot be forged by client.
+  // x-forwarded-for can be spoofed; when both exist, client controls the first value.
+  const cfIp = c.req.header('cf-connecting-ip')
+  if (cfIp) return cfIp
   const forwarded = c.req.header('x-forwarded-for')
   if (forwarded) {
     const first = forwarded.split(',')[0]?.trim()
     if (first) return first
   }
-  const cfIp = c.req.header('cf-connecting-ip')
-  if (cfIp) return cfIp
   try {
     const info = getConnInfo(c)
     const address = info?.remote?.address
