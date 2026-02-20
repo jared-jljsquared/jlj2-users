@@ -135,6 +135,65 @@ describe('Authorization Validation', () => {
     }
   })
 
+  it('should reject invalid redirect_uri format', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'javascript:alert(1)',
+      responseType: 'code',
+      scope: 'openid',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+      expect(result.errorDescription).toContain('valid http or https')
+    }
+  })
+
+  it('should reject state exceeding max length', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      state: 'x'.repeat(600),
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+      expect(result.errorDescription).toContain('state')
+    }
+  })
+
+  it('should reject scope exceeding max length', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: `openid ${'x'.repeat(2100)}`,
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+      expect(result.errorDescription).toContain('scope')
+    }
+  })
+
+  it('should reject code_challenge exceeding max length', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      codeChallenge: 'x'.repeat(150),
+      codeChallengeMethod: 'plain',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+      expect(result.errorDescription).toContain('code_challenge')
+    }
+  })
+
   it('should accept valid request with PKCE', async () => {
     const result = await validateAuthorizationRequest({
       clientId: 'client-123',

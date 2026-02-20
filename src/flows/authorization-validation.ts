@@ -1,4 +1,10 @@
 import { getClientById } from '../clients/service.ts'
+import {
+  isCodeChallengeWithinLimit,
+  isScopeWithinLimit,
+  isStateWithinLimit,
+  isValidRedirectUriFormat,
+} from './input-validation.ts'
 
 export interface ValidatedAuthorizationRequest {
   clientId: string
@@ -42,6 +48,30 @@ export const validateAuthorizationRequest = async (params: {
       isValid: false,
       error: 'invalid_request',
       errorDescription: 'redirect_uri is required',
+    }
+  }
+
+  if (!isValidRedirectUriFormat(params.redirectUri)) {
+    return {
+      isValid: false,
+      error: 'invalid_request',
+      errorDescription: 'redirect_uri must be a valid http or https URL',
+    }
+  }
+
+  if (!isStateWithinLimit(params.state)) {
+    return {
+      isValid: false,
+      error: 'invalid_request',
+      errorDescription: 'state exceeds maximum length',
+    }
+  }
+
+  if (!isScopeWithinLimit(params.scope)) {
+    return {
+      isValid: false,
+      error: 'invalid_request',
+      errorDescription: 'scope exceeds maximum length',
     }
   }
 
@@ -126,6 +156,19 @@ export const validateAuthorizationRequest = async (params: {
       isValid: false,
       error: 'invalid_request',
       errorDescription: 'code_challenge_method must be S256 or plain',
+      redirectUri: params.redirectUri,
+      state: params.state ?? null,
+    }
+  }
+
+  if (
+    params.codeChallenge &&
+    !isCodeChallengeWithinLimit(params.codeChallenge)
+  ) {
+    return {
+      isValid: false,
+      error: 'invalid_request',
+      errorDescription: 'code_challenge exceeds maximum length',
       redirectUri: params.redirectUri,
       state: params.state ?? null,
     }

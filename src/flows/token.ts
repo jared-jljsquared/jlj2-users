@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { Context } from 'hono'
 import {
   extractClientCredentialsFromBasicAuthHeader,
@@ -186,6 +187,7 @@ const handleAuthorizationCodeGrant = async (
     aud: client.id,
     exp: now + ACCESS_TOKEN_EXPIRY_SECONDS,
     iat: now,
+    jti: randomUUID(),
     scope: codeData.scopes.join(' '),
     client_id: client.id,
   }
@@ -203,6 +205,7 @@ const handleAuthorizationCodeGrant = async (
     aud: client.id,
     exp: now + ID_TOKEN_EXPIRY_SECONDS,
     iat: now,
+    jti: randomUUID(),
     auth_time: codeData.auth_time ?? now,
     ...(codeData.nonce && { nonce: codeData.nonce }),
     ...(codeData.scopes.includes('email') && {
@@ -305,6 +308,7 @@ const handleRefreshTokenGrant = async (
     aud: client.id,
     exp: now + ACCESS_TOKEN_EXPIRY_SECONDS,
     iat: now,
+    jti: randomUUID(),
     scope: refreshTokenData.scopes.join(' '),
     client_id: client.id,
   }
@@ -326,6 +330,7 @@ const handleRefreshTokenGrant = async (
     aud: client.id,
     exp: now + ID_TOKEN_EXPIRY_SECONDS,
     iat: now,
+    jti: randomUUID(),
     auth_time: authTime,
     ...(refreshTokenData.scopes.includes('email') && {
       email: user.email,

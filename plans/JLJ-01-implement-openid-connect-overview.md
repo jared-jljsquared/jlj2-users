@@ -113,10 +113,11 @@ Implement token revocation endpoint (RFC 7009). Introspection endpoint deferred.
 **Status:** ✅ Complete (revocation); introspection deferred  
 **Details:** See [JLJ-01-step-17-token-revocation.md](./completed/JLJ-01-implement-openid-connect/JLJ-01-step-17-token-revocation.md)
 
-### Step 18: Security Hardening
-Implement security best practices including PKCE support, state parameter validation, nonce handling, and rate limiting.
+### Step 18: Security Hardening ✅
+Implement security best practices including PKCE support, state parameter validation, nonce handling, rate limiting, security headers, HTTPS enforcement, and input validation.
 
-**Details:** See [JLJ-01-step-17-security-hardening.md](./JLJ-01-step-17-security-hardening.md)
+**Status:** ✅ Complete  
+**Details:** See [JLJ-01-step-18-security-hardening.md](./completed/JLJ-01-step-18-security-hardening.md)
 
 ### Step 19: Error Handling and Logging
 Enhance error handling with OIDC-compliant error responses and comprehensive security logging.
