@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { rateLimit } from '../middleware/rate-limit.ts'
 import {
   authenticateUser,
   authenticateWithMagicLink,
@@ -20,6 +21,11 @@ import type {
 } from './types/user.ts'
 
 const users = new Hono()
+
+users.use(
+  '*',
+  rateLimit({ scope: 'users', windowMs: 60_000, maxRequests: 100 }),
+)
 
 /**
  * POST /users/register

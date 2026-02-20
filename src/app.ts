@@ -88,13 +88,15 @@ const start = async (): Promise<void> => {
     process.exit(1)
   }
 
-  // Initialize database connection
+  // Initialize database connection (required for rate limiting, tokens, etc.)
   try {
-    await initializeDatabase()
+    await initializeDatabase({ required: true })
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error ?? 'Unknown error')
     log({
-      message: 'Failed to initialize database',
-      error: error instanceof Error ? error.message : String(error),
+      message: 'ScyllaDB connection required but unavailable. Shutting down.',
+      error: message,
     })
     process.exit(1)
   }

@@ -12,6 +12,7 @@ Implement security best practices to protect against common OAuth 2.0 and OIDC a
 ### 18.1 Rate Limiting ✅
 - [x] Create rate limit middleware (fixed window)
 - [x] Apply to flows (`/authorize`, `/token`, `/login`, `/revoke`, `/userinfo`, `/auth/*`)
+- [x] Apply to users (`/users/login`, `/users/register`, `/users/*`)
 - [x] Configurable via env (RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS)
 - [x] Use IP from x-forwarded-for, cf-connecting-ip, or hostname
 

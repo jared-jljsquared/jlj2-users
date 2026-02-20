@@ -1,11 +1,41 @@
 import { Hono } from 'hono'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { initializeDatabase, shutdownDatabase } from '../../database/client.ts'
 import { rateLimit } from '../rate-limit.ts'
 
-describe('rateLimit', () => {
+describe('rateLimit (ScyllaDB)', () => {
+  const originalEnv = process.env
+
+  beforeAll(async () => {
+    process.env = { ...originalEnv }
+    process.env.NODE_ENV = 'development'
+    delete process.env.SCYLLA_DISABLED
+
+    if (!process.env.SCYLLA_HOSTS) process.env.SCYLLA_HOSTS = 'localhost'
+    if (!process.env.SCYLLA_PORT) process.env.SCYLLA_PORT = '9042'
+    if (!process.env.SCYLLA_KEYSPACE) process.env.SCYLLA_KEYSPACE = 'jlj2_users'
+    if (!process.env.SCYLLA_LOCAL_DATACENTER) {
+      process.env.SCYLLA_LOCAL_DATACENTER = 'datacenter1'
+    }
+
+    await initializeDatabase()
+  })
+
+  afterAll(async () => {
+    await shutdownDatabase()
+    process.env = originalEnv
+  })
+
   it('should allow requests within limit', async () => {
     const app = new Hono()
-    app.use('*', rateLimit({ windowMs: 60_000, maxRequests: 5 }))
+    app.use(
+      '*',
+      rateLimit({
+        scope: 'test-allow',
+        windowMs: 60_000,
+        maxRequests: 5,
+      }),
+    )
     app.get('/test', (c) => c.json({ ok: true }))
 
     for (let i = 0; i < 5; i++) {
@@ -18,7 +48,14 @@ describe('rateLimit', () => {
 
   it('should return 429 when limit exceeded', async () => {
     const app = new Hono()
-    app.use('*', rateLimit({ windowMs: 60_000, maxRequests: 3 }))
+    app.use(
+      '*',
+      rateLimit({
+        scope: 'test-429',
+        windowMs: 60_000,
+        maxRequests: 3,
+      }),
+    )
     app.get('/test', (c) => c.json({ ok: true }))
 
     for (let i = 0; i < 3; i++) {
@@ -39,7 +76,14 @@ describe('rateLimit', () => {
 
   it('should track limits per IP', async () => {
     const app = new Hono()
-    app.use('*', rateLimit({ windowMs: 60_000, maxRequests: 2 }))
+    app.use(
+      '*',
+      rateLimit({
+        scope: 'test-per-ip',
+        windowMs: 60_000,
+        maxRequests: 2,
+      }),
+    )
     app.get('/test', (c) => c.json({ ok: true }))
 
     await app.request('/test', { headers: { 'x-forwarded-for': '1.1.1.1' } })

@@ -70,8 +70,10 @@ export const getDatabaseClient = (): CassandraClient => {
 
 export const initializeDatabase = async (options?: {
   skipKeyspace?: boolean
+  required?: boolean
 }): Promise<void> => {
-  if (!isDatabaseEnabledForEnv()) {
+  const isRequired = options?.required === true
+  if (!isRequired && !isDatabaseEnabledForEnv()) {
     log('Database initialization skipped for current environment')
     return
   }

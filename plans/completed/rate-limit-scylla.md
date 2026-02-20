@@ -24,7 +24,7 @@ Minor race: two concurrent requests could both read 99 and both pass before incr
 
 ## Usage
 
-- When `isDatabaseEnabledForEnv()` is true: uses ScyllaDB `checkAndIncrement`
-- When DB disabled (tests, `SCYLLA_DISABLED=true`): falls back to in-memory
-- On DB failure: falls back to in-memory to avoid blocking traffic
+- Always uses ScyllaDB `checkAndIncrement`; in-memory fallback removed
+- App requires ScyllaDB at startup (`initializeDatabase({ required: true })`); exits with error if unavailable
+- On DB failure at runtime: returns 503 Service Unavailable
 - Multi-tenant: pass `tenantId` in `rateLimit({ tenantId: '...' })` when available
