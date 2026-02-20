@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { TokenEndpointAuthMethod } from '../database/types/oauth-client.ts'
+import { isValidRedirectUriFormat } from '../flows/input-validation.ts'
 import { hashClientSecret, verifyClientSecret } from './credentials.ts'
 import {
   deactivateClient,
@@ -35,18 +36,6 @@ const AUTH_METHODS: TokenEndpointAuthMethod[] = [
 const DEFAULT_GRANT_TYPES = ['authorization_code']
 const DEFAULT_RESPONSE_TYPES = ['code']
 const DEFAULT_SCOPES = ['openid', 'profile', 'email']
-
-/**
- * Validate redirect URI format - must be absolute URI
- */
-const isValidRedirectUri = (uri: string): boolean => {
-  try {
-    const parsed = new URL(uri)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
 
 const toApiClient = (row: {
   client_id: string
@@ -92,7 +81,7 @@ export const registerClient = async (
   }
 
   for (const uri of input.redirectUris) {
-    if (!isValidRedirectUri(uri)) {
+    if (!isValidRedirectUriFormat(uri)) {
       throw new Error(`Invalid redirect URI: ${uri}`)
     }
   }
@@ -185,7 +174,7 @@ export const updateClientById = async (
       throw new Error('At least one redirect URI is required')
     }
     for (const uri of input.redirectUris) {
-      if (!isValidRedirectUri(uri)) {
+      if (!isValidRedirectUriFormat(uri)) {
         throw new Error(`Invalid redirect URI: ${uri}`)
       }
     }
