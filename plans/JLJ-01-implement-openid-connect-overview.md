@@ -122,16 +122,22 @@ Implement security best practices including PKCE support, state parameter valida
 ### Step 19: Error Handling and Logging
 Enhance error handling with OIDC-compliant error responses and comprehensive security logging.
 
+**Details:** See [JLJ-01-remaining-steps-plan.md](./JLJ-01-remaining-steps-plan.md#step-19-error-handling-and-logging)
+
 ### Step 20: Testing and Validation
 Create comprehensive test suite and validate OIDC compliance using standard OIDC conformance tests.
 
-**Details:** See [JLJ-01-step-19-testing.md](./JLJ-01-step-19-testing.md)
+**Details:** See [JLJ-01-step-19-testing.md](./JLJ-01-step-19-testing.md) and [JLJ-01-remaining-steps-plan.md](./JLJ-01-remaining-steps-plan.md#step-20-testing-and-validation)
 
 ### Step 21: Documentation and Deployment
 Create API documentation, deployment guides, and operational runbooks.
 
+**Details:** See [JLJ-01-remaining-steps-plan.md](./JLJ-01-remaining-steps-plan.md#step-21-documentation-and-deployment)
+
 ### Step 22: Evaluate Use of Realms
 Evaluate the use of OIDC realms (e.g. site A vs site B) for access control. Assess how the `aud` claim can be used to distinguish realms, how realm selection would integrate with the authorization flow, and whether to support multiple audiences per token. Tokens currently use `jlj-squared-development` as the default audience (configurable via `OIDC_DEFAULT_AUDIENCE`).
+
+**Details:** See [JLJ-01-remaining-steps-plan.md](./JLJ-01-remaining-steps-plan.md#step-22-evaluate-use-of-realms)
 
 ## Notes
 
