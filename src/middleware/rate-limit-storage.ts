@@ -5,6 +5,19 @@ import { getDatabaseConfig } from '../database/config.ts'
 const getDbClient = (): Client => getDatabaseClient()
 const getKeyspace = (): string => getDatabaseConfig().keyspace
 
+/**
+ * Safely parse Scylla COUNTER value to number. The driver returns Long-like objects;
+ * Number(long) can yield NaN. Use toNumber() when available, guard against NaN.
+ */
+const parseCounterValue = (value: unknown): number => {
+  if (value == null) return 0
+  const n =
+    typeof value === 'number'
+      ? value
+      : ((value as { toNumber?: () => number }).toNumber?.() ?? Number(value))
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0
+}
+
 export interface RateLimitCheckParams {
   scope: string
   tenantId?: string
@@ -52,8 +65,8 @@ export const checkAndIncrement = async (
     { prepare: true },
   )
 
-  const currentCount =
-    selectResult.rows.length > 0 ? Number(selectResult.rows[0].count ?? 0) : 0
+  const rawCount = selectResult.rows[0]?.count
+  const currentCount = parseCounterValue(rawCount)
 
   if (currentCount >= params.maxRequests) {
     return false

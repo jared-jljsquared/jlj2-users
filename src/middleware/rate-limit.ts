@@ -3,11 +3,18 @@ import type { Context, Next } from 'hono'
 import { parseNumber } from '../plumbing/parse-number.ts'
 import { checkAndIncrement } from './rate-limit-storage.ts'
 
+const isTrustCfConnectingIp = (): boolean =>
+  process.env.RATE_LIMIT_TRUST_CF_CONNECTING_IP === 'true'
+
 const getClientIp = (c: Context): string => {
-  // Prefer cf-connecting-ip: set by Cloudflare, cannot be forged by client.
-  // x-forwarded-for can be spoofed; when both exist, client controls the first value.
-  const cfIp = c.req.header('cf-connecting-ip')
-  if (cfIp) return cfIp
+  // cf-connecting-ip is set by Cloudflare and cannot be forged when behind Cloudflare.
+  // When NOT behind Cloudflare, clients can spoof it to bypass rate limits.
+  // Only prefer it when RATE_LIMIT_TRUST_CF_CONNECTING_IP=true (deployed behind Cloudflare).
+  if (isTrustCfConnectingIp()) {
+    const cfIp = c.req.header('cf-connecting-ip')
+    if (cfIp) return cfIp
+  }
+
   const forwarded = c.req.header('x-forwarded-for')
   if (forwarded) {
     const first = forwarded.split(',')[0]?.trim()

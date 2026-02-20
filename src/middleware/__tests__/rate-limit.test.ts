@@ -74,7 +74,8 @@ describe('rateLimit (ScyllaDB)', () => {
     expect(res.headers.get('Retry-After')).toBeDefined()
   })
 
-  it('should prefer cf-connecting-ip over x-forwarded-for when both present', async () => {
+  it('should prefer cf-connecting-ip over x-forwarded-for when RATE_LIMIT_TRUST_CF_CONNECTING_IP=true', async () => {
+    process.env.RATE_LIMIT_TRUST_CF_CONNECTING_IP = 'true'
     const app = new Hono()
     app.use(
       '*',
@@ -112,6 +113,42 @@ describe('rateLimit (ScyllaDB)', () => {
       headers: { 'x-forwarded-for': '5.6.7.8' },
     })
     expect(spoofedDifferent.status).toBe(200)
+    delete process.env.RATE_LIMIT_TRUST_CF_CONNECTING_IP
+  })
+
+  it('should ignore cf-connecting-ip when RATE_LIMIT_TRUST_CF_CONNECTING_IP is not set', async () => {
+    delete process.env.RATE_LIMIT_TRUST_CF_CONNECTING_IP
+    const app = new Hono()
+    app.use(
+      '*',
+      rateLimit({
+        scope: 'test-no-trust-cf',
+        windowMs: 60_000,
+        maxRequests: 2,
+      }),
+    )
+    app.get('/test', (c) => c.json({ ok: true }))
+
+    // Client spoofs cf-connecting-ip; without trust, we use x-forwarded-for
+    await app.request('/test', {
+      headers: {
+        'x-forwarded-for': '10.10.10.10',
+        'cf-connecting-ip': 'spoofed-ip-1',
+      },
+    })
+    await app.request('/test', {
+      headers: {
+        'x-forwarded-for': '10.10.10.10',
+        'cf-connecting-ip': 'spoofed-ip-2',
+      },
+    })
+    const blocked = await app.request('/test', {
+      headers: {
+        'x-forwarded-for': '10.10.10.10',
+        'cf-connecting-ip': 'spoofed-ip-3',
+      },
+    })
+    expect(blocked.status).toBe(429)
   })
 
   it('should track limits per IP', async () => {
