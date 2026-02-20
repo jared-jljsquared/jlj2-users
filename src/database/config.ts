@@ -1,17 +1,5 @@
+import { parseNumber } from '../plumbing/parse-number.ts'
 import type { DatabaseConfig } from './types/database-config.ts'
-
-const parseNumber = (value: string | undefined, fallback: number): number => {
-  if (!value) {
-    return fallback
-  }
-
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) {
-    return fallback
-  }
-
-  return parsed
-}
 
 export const getDatabaseConfig = (): DatabaseConfig => {
   const rawHosts = process.env.SCYLLA_HOSTS || 'localhost'

@@ -49,6 +49,7 @@ export const checkAndIncrement = async (
   const selectResult = await client.execute(
     `SELECT count FROM ${keyspace}.rate_limit_counters WHERE key = ? AND window_bucket = ?`,
     [key, windowBucket],
+    { prepare: true },
   )
 
   const currentCount =
@@ -61,6 +62,7 @@ export const checkAndIncrement = async (
   await client.execute(
     `UPDATE ${keyspace}.rate_limit_counters SET count = count + 1 WHERE key = ? AND window_bucket = ?`,
     [key, windowBucket],
+    { prepare: true },
   )
 
   return true
