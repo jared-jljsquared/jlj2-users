@@ -20,6 +20,8 @@ export const handleUserInfo = async (c: Context): Promise<Response> => {
   const user = await getUserById(sub)
   if (!user) {
     c.status(404)
+    c.header('Cache-Control', 'no-store')
+    c.header('Pragma', 'no-cache')
     return c.json({
       error: 'user_not_found',
       error_description: 'User not found',
@@ -28,6 +30,8 @@ export const handleUserInfo = async (c: Context): Promise<Response> => {
 
   if (!user.isActive) {
     c.status(403)
+    c.header('Cache-Control', 'no-store')
+    c.header('Pragma', 'no-cache')
     return c.json({
       error: 'user_inactive',
       error_description: 'User account is not active',

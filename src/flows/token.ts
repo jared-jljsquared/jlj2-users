@@ -7,6 +7,8 @@ import {
 import { authenticateClient, getClientById } from '../clients/service.ts'
 import type { Client } from '../clients/types/client.ts'
 import { getOidcConfig } from '../oidc/config.ts'
+import { oidcJsonError } from '../oidc/error-response.ts'
+import { logSecurityEvent } from '../plumbing/security-log.ts'
 import { signJwt } from '../tokens/jwt.ts'
 import { initializeKeys } from '../tokens/key-management.ts'
 import { getUserById } from '../users/service.ts'
@@ -20,31 +22,10 @@ import {
 const ACCESS_TOKEN_EXPIRY_SECONDS = 3600
 const ID_TOKEN_EXPIRY_SECONDS = 3600
 
-const tokenError = (
-  error: string,
-  errorDescription?: string,
-  status = 400,
-): Response => {
-  return new Response(
-    JSON.stringify({
-      error,
-      ...(errorDescription && { error_description: errorDescription }),
-    }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-        Pragma: 'no-cache',
-      },
-    },
-  )
-}
-
 export const handleTokenRequest = async (c: Context): Promise<Response> => {
   const contentType = c.req.header('Content-Type') ?? ''
   if (!contentType.includes('application/x-www-form-urlencoded')) {
-    return tokenError(
+    return oidcJsonError(
       'invalid_request',
       'Content-Type must be application/x-www-form-urlencoded',
     )
@@ -60,7 +41,7 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
 
   const grantType = params.get('grant_type')
   if (grantType !== 'authorization_code' && grantType !== 'refresh_token') {
-    return tokenError(
+    return oidcJsonError(
       'unsupported_grant_type',
       'Only authorization_code and refresh_token grants are supported',
     )
@@ -79,10 +60,10 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
       credentials.clientSecret,
     )
     if (!client) {
-      return tokenError('invalid_client', 'Invalid client credentials', 401)
+      return oidcJsonError('invalid_client', 'Invalid client credentials', 401)
     }
     if (clientId && credentials.clientId !== clientId) {
-      return tokenError(
+      return oidcJsonError(
         'invalid_request',
         'client_id in body must match Authorization header',
       )
@@ -90,29 +71,33 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
   } else {
     // Public client (token_endpoint_auth_method: 'none')
     if (grantType === 'refresh_token') {
-      return tokenError(
+      return oidcJsonError(
         'invalid_client',
         'Client authentication required for refresh_token grant',
         401,
       )
     }
     if (!clientId) {
-      return tokenError(
+      return oidcJsonError(
         'invalid_request',
         'client_id is required for public clients',
       )
     }
     client = await getClientById(clientId)
     if (!client) {
-      return tokenError('invalid_client', 'Unknown client', 401)
+      return oidcJsonError('invalid_client', 'Unknown client', 401)
     }
     if (client.tokenEndpointAuthMethod !== 'none') {
-      return tokenError('invalid_client', 'Client authentication required', 401)
+      return oidcJsonError(
+        'invalid_client',
+        'Client authentication required',
+        401,
+      )
     }
   }
 
   if (!client) {
-    return tokenError('invalid_client', 'Client not found', 401)
+    return oidcJsonError('invalid_client', 'Client not found', 401)
   }
 
   if (grantType === 'authorization_code') {
@@ -123,7 +108,7 @@ export const handleTokenRequest = async (c: Context): Promise<Response> => {
     return handleRefreshTokenGrant(params, client, c)
   }
 
-  return tokenError('unsupported_grant_type', 'Unsupported grant type')
+  return oidcJsonError('unsupported_grant_type', 'Unsupported grant type')
 }
 
 const handleAuthorizationCodeGrant = async (
@@ -136,11 +121,14 @@ const handleAuthorizationCodeGrant = async (
   const codeVerifier = params.get('code_verifier')
 
   if (!code || !redirectUri) {
-    return tokenError('invalid_request', 'code and redirect_uri are required')
+    return oidcJsonError(
+      'invalid_request',
+      'code and redirect_uri are required',
+    )
   }
 
   if (!client.grantTypes.includes('authorization_code')) {
-    return tokenError(
+    return oidcJsonError(
       'unauthorized_client',
       'Client is not authorized for authorization_code grant',
     )
@@ -148,33 +136,36 @@ const handleAuthorizationCodeGrant = async (
 
   const codeData = await consumeAuthorizationCode(code, client.id, redirectUri)
   if (!codeData) {
-    return tokenError('invalid_grant', 'Invalid or expired authorization code')
+    return oidcJsonError(
+      'invalid_grant',
+      'Invalid or expired authorization code',
+    )
   }
 
   const isPublicClient = client.tokenEndpointAuthMethod === 'none'
   if (isPublicClient && !codeData.code_challenge) {
-    return tokenError('invalid_grant', 'PKCE is required for public clients')
+    return oidcJsonError('invalid_grant', 'PKCE is required for public clients')
   }
 
   if (codeData.code_challenge) {
     if (!codeVerifier) {
-      return tokenError(
+      return oidcJsonError(
         'invalid_request',
         'code_verifier is required when PKCE was used',
       )
     }
     const method = codeData.code_challenge_method ?? 'plain'
     if (!verifyCodeVerifier(codeVerifier, codeData.code_challenge, method)) {
-      return tokenError('invalid_grant', 'Invalid code_verifier')
+      return oidcJsonError('invalid_grant', 'Invalid code_verifier')
     }
   }
 
   const user = await getUserById(codeData.user_id)
   if (!user) {
-    return tokenError('server_error', 'User not found', 500)
+    return oidcJsonError('server_error', 'User not found', 500)
   }
   if (!user.isActive) {
-    return tokenError('invalid_grant', 'User account is deactivated')
+    return oidcJsonError('invalid_grant', 'User account is deactivated')
   }
 
   const config = getOidcConfig()
@@ -254,6 +245,13 @@ const handleAuthorizationCodeGrant = async (
     response.refresh_token = refreshToken
   }
 
+  logSecurityEvent({
+    event: 'token_issued',
+    user_id: user.sub,
+    client_id: client.id,
+    grant_type: 'authorization_code',
+  })
+
   return new Response(JSON.stringify(response), {
     status: 200,
     headers: {
@@ -272,11 +270,11 @@ const handleRefreshTokenGrant = async (
   const refreshTokenParam = params.get('refresh_token')
 
   if (!refreshTokenParam) {
-    return tokenError('invalid_request', 'refresh_token is required')
+    return oidcJsonError('invalid_request', 'refresh_token is required')
   }
 
   if (!client.grantTypes.includes('refresh_token')) {
-    return tokenError(
+    return oidcJsonError(
       'unauthorized_client',
       'Client is not authorized for refresh_token grant',
     )
@@ -287,15 +285,15 @@ const handleRefreshTokenGrant = async (
     client.id,
   )
   if (!refreshTokenData) {
-    return tokenError('invalid_grant', 'Invalid or expired refresh token')
+    return oidcJsonError('invalid_grant', 'Invalid or expired refresh token')
   }
 
   const user = await getUserById(refreshTokenData.user_id)
   if (!user) {
-    return tokenError('server_error', 'User not found', 500)
+    return oidcJsonError('server_error', 'User not found', 500)
   }
   if (!user.isActive) {
-    return tokenError('invalid_grant', 'User account is deactivated')
+    return oidcJsonError('invalid_grant', 'User account is deactivated')
   }
 
   const config = getOidcConfig()
@@ -366,6 +364,13 @@ const handleRefreshTokenGrant = async (
     id_token: idToken,
     refresh_token: newRefreshToken,
   }
+
+  logSecurityEvent({
+    event: 'token_issued',
+    user_id: user.sub,
+    client_id: client.id,
+    grant_type: 'refresh_token',
+  })
 
   return new Response(JSON.stringify(response), {
     status: 200,

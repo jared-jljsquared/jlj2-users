@@ -4,27 +4,9 @@ import {
   extractClientCredentialsFromForm,
 } from '../clients/auth.ts'
 import { authenticateClient, getClientById } from '../clients/service.ts'
+import { oidcJsonError } from '../oidc/error-response.ts'
+import { logSecurityEvent } from '../plumbing/security-log.ts'
 import { revokeRefreshToken } from './refresh-token-storage.ts'
-
-const revokeError = (
-  error: string,
-  errorDescription?: string,
-  status = 400,
-): Response =>
-  new Response(
-    JSON.stringify({
-      error,
-      ...(errorDescription && { error_description: errorDescription }),
-    }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-        Pragma: 'no-cache',
-      },
-    },
-  )
 
 /**
  * RFC 7009 Token Revocation endpoint.
@@ -35,7 +17,7 @@ const revokeError = (
 export const handleRevokeRequest = async (c: Context): Promise<Response> => {
   const contentType = c.req.header('Content-Type') ?? ''
   if (!contentType.includes('application/x-www-form-urlencoded')) {
-    return revokeError(
+    return oidcJsonError(
       'invalid_request',
       'Content-Type must be application/x-www-form-urlencoded',
     )
@@ -51,7 +33,7 @@ export const handleRevokeRequest = async (c: Context): Promise<Response> => {
 
   const token = params.get('token')
   if (!token || token.trim() === '') {
-    return revokeError('invalid_request', 'token is required')
+    return oidcJsonError('invalid_request', 'token is required')
   }
 
   const clientId = params.get('client_id')
@@ -67,10 +49,10 @@ export const handleRevokeRequest = async (c: Context): Promise<Response> => {
       credentials.clientSecret,
     )
     if (!client) {
-      return revokeError('invalid_client', 'Invalid client credentials', 401)
+      return oidcJsonError('invalid_client', 'Invalid client credentials', 401)
     }
     if (clientId && credentials.clientId !== clientId) {
-      return revokeError(
+      return oidcJsonError(
         'invalid_request',
         'client_id in body must match Authorization header',
       )
@@ -78,17 +60,17 @@ export const handleRevokeRequest = async (c: Context): Promise<Response> => {
     clientIdToUse = credentials.clientId
   } else {
     if (!clientId) {
-      return revokeError(
+      return oidcJsonError(
         'invalid_request',
         'client_id is required when not using client authentication',
       )
     }
     const client = await getClientById(clientId)
     if (!client) {
-      return revokeError('invalid_client', 'Unknown client', 401)
+      return oidcJsonError('invalid_client', 'Unknown client', 401)
     }
     if (client.tokenEndpointAuthMethod !== 'none') {
-      return revokeError(
+      return oidcJsonError(
         'invalid_client',
         'Client authentication required',
         401,
@@ -103,13 +85,19 @@ export const handleRevokeRequest = async (c: Context): Promise<Response> => {
     tokenTypeHint !== 'refresh_token' &&
     tokenTypeHint !== 'access_token'
   ) {
-    return revokeError(
+    return oidcJsonError(
       'unsupported_token_type',
       'token_type_hint must be refresh_token or access_token',
     )
   }
 
-  await revokeRefreshToken(token.trim(), clientIdToUse)
+  const revoked = await revokeRefreshToken(token.trim(), clientIdToUse)
+
+  logSecurityEvent({
+    event: 'token_revoked',
+    client_id: clientIdToUse,
+    revoked,
+  })
 
   return new Response(null, {
     status: 200,

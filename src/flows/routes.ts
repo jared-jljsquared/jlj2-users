@@ -18,6 +18,7 @@ import {
 import { handleXAuth, handleXCallback } from '../auth/x-routes.ts'
 import { rateLimit } from '../middleware/rate-limit.ts'
 import { requireAccessToken } from '../middleware/require-access-token.ts'
+import { logSecurityEvent } from '../plumbing/security-log.ts'
 import { getFacebookConfig } from '../providers/facebook-config.ts'
 import { getGoogleConfig } from '../providers/google-config.ts'
 import { getMicrosoftConfig } from '../providers/microsoft-config.ts'
@@ -118,6 +119,11 @@ flows.post('/login', async (c) => {
   const returnTo = sanitizeReturnTo(body.return_to as string)
 
   if (!email || !password) {
+    logSecurityEvent({
+      event: 'auth_failure',
+      provider: 'password',
+      reason: 'missing_credentials',
+    })
     return c.redirect(
       `/login?return_to=${encodeURIComponent(returnTo)}&error=missing_credentials`,
       302,
@@ -126,8 +132,18 @@ flows.post('/login', async (c) => {
 
   try {
     const user = await authenticateUser({ email, password })
+    logSecurityEvent({
+      event: 'auth_success',
+      user_id: user.sub,
+      provider: 'password',
+    })
     return setSessionCookieAndRedirect(c, user.sub, returnTo)
   } catch {
+    logSecurityEvent({
+      event: 'auth_failure',
+      provider: 'password',
+      reason: 'invalid_credentials',
+    })
     return c.redirect(
       `/login?return_to=${encodeURIComponent(returnTo)}&error=invalid_credentials`,
       302,

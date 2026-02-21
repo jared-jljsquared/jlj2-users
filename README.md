@@ -1,6 +1,17 @@
 # jlj2-users
 
-This is intended to be as simple a microservice as possible that handles user registration & login
+OAuth 2.0 / OpenID Connect identity provider for user registration and login.
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/api.md](docs/api.md) | API reference (endpoints, parameters, error codes) |
+| [docs/deployment.md](docs/deployment.md) | Deployment guide (env vars, ScyllaDB, providers) |
+| [docs/runbooks.md](docs/runbooks.md) | Operational runbooks (health, incidents, key rotation) |
+| [docs/manual-test-scenarios.md](docs/manual-test-scenarios.md) | Manual test checklist |
+| [docs/realms-evaluation.md](docs/realms-evaluation.md) | Realms/multi-tenant evaluation |
+| [README-SCYLLA.md](README-SCYLLA.md) | ScyllaDB local setup |
 
 ## Session Cookie – SameSite=Lax
 

@@ -36,3 +36,8 @@ playwright/.cache/
 coverage/
 .vitest/
 *.test.ts.snap
+
+# Coverage reports
+*.lcov
+coverage-final.json
+.coverage

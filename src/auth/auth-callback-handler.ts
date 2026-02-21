@@ -1,5 +1,5 @@
 import type { Context } from 'hono'
-import { log } from '../plumbing/logger.ts'
+import { logSecurityEvent } from '../plumbing/security-log.ts'
 import { setSessionCookieAndRedirect } from './auth-utils.ts'
 import { consumeOAuthState } from './oauth-state-storage.ts'
 
@@ -88,11 +88,17 @@ export const handleOAuthCallback = async (
       clientId,
       clientSecret,
     })
+    logSecurityEvent({
+      event: 'auth_success',
+      user_id: user.sub,
+      provider: provider as 'google' | 'microsoft' | 'facebook' | 'x',
+    })
     return setSessionCookieAndRedirect(c, user.sub, returnTo)
   } catch (err) {
-    log({
-      message: `${provider} auth failed`,
-      error: err instanceof Error ? err.message : String(err),
+    logSecurityEvent({
+      event: 'auth_failure',
+      provider: provider as 'google' | 'microsoft' | 'facebook' | 'x',
+      reason: err instanceof Error ? err.message : String(err),
     })
     const errorParam =
       err instanceof Error &&
