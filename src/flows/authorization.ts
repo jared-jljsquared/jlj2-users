@@ -61,6 +61,8 @@ export const handleAuthorization = async (c: Context): Promise<Response> => {
     codeChallenge: params.code_challenge,
     codeChallengeMethod: params.code_challenge_method,
     nonce: params.nonce,
+    prompt: params.prompt,
+    max_age: params.max_age,
   })
 
   if (!validation.isValid) {
@@ -92,15 +94,42 @@ export const handleAuthorization = async (c: Context): Promise<Response> => {
 
   const session = sessionToken ? verifySessionToken(sessionToken) : null
 
+  const config = getOidcConfig()
+  const currentUrl = new URL(c.req.url)
+  const loginUrl = new URL(`${config.issuer}/login`)
+  loginUrl.searchParams.set(
+    'return_to',
+    currentUrl.pathname + currentUrl.search,
+  )
+
   if (!session) {
-    const config = getOidcConfig()
-    const currentUrl = new URL(c.req.url)
-    const loginUrl = new URL(`${config.issuer}/login`)
-    loginUrl.searchParams.set(
-      'return_to',
-      currentUrl.pathname + currentUrl.search,
-    )
+    if (data.prompt === 'none') {
+      return c.redirect(
+        buildRedirectUrl(data.redirectUri, {
+          error: 'login_required',
+          error_description: 'User must be authenticated',
+          state: data.state ?? undefined,
+        }),
+        302,
+      )
+    }
     return c.redirect(loginUrl.toString(), 302)
+  }
+
+  if (
+    data.prompt === 'login' ||
+    data.prompt === 'consent' ||
+    data.prompt === 'select_account'
+  ) {
+    return c.redirect(loginUrl.toString(), 302)
+  }
+
+  if (data.maxAge !== null && data.maxAge > 0) {
+    const now = Math.floor(Date.now() / 1000)
+    const authAge = now - session.iat
+    if (authAge > data.maxAge) {
+      return c.redirect(loginUrl.toString(), 302)
+    }
   }
 
   const code = await generateAuthorizationCode({

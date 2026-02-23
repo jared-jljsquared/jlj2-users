@@ -53,6 +53,8 @@ describe('Authorization Endpoint', () => {
         codeChallenge: null,
         codeChallengeMethod: null,
         nonce: null,
+        prompt: null,
+        maxAge: null,
       },
     })
 
@@ -81,6 +83,8 @@ describe('Authorization Endpoint', () => {
         codeChallenge: null,
         codeChallengeMethod: null,
         nonce: null,
+        prompt: null,
+        maxAge: null,
       },
     })
     vi.mocked(

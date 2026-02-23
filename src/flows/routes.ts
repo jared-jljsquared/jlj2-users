@@ -25,7 +25,9 @@ import { getMicrosoftConfig } from '../providers/microsoft-config.ts'
 import { getXConfig } from '../providers/x-config.ts'
 import { authenticateUser } from '../users/service.ts'
 import { handleAuthorization } from './authorization.ts'
+import { handleEndSession } from './end-session.ts'
 import { escapeHtml } from './escape-html.ts'
+import { handleIntrospectRequest } from './introspect.ts'
 import { handleRevokeRequest } from './revoke.ts'
 import { handleTokenRequest } from './token.ts'
 import { handleUserInfo } from './userinfo.ts'
@@ -36,9 +38,13 @@ flows.use('*', rateLimit({ windowMs: 60_000, maxRequests: 100 }))
 
 flows.get('/authorize', handleAuthorization)
 
+flows.get('/logout', handleEndSession)
+
 flows.post('/token', handleTokenRequest)
 
 flows.post('/revoke', handleRevokeRequest)
+
+flows.post('/introspect', handleIntrospectRequest)
 
 flows.get('/userinfo', requireAccessToken(), handleUserInfo)
 

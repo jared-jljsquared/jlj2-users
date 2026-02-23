@@ -58,6 +58,8 @@ export const getOidcConfig = (): OidcConfig => {
     tokenEndpoint: `${issuer}/token`,
     userinfoEndpoint: `${issuer}/userinfo`,
     revocationEndpoint: `${issuer}/revoke`,
+    endSessionEndpoint: `${issuer}/logout`,
+    introspectionEndpoint: `${issuer}/introspect`,
     jwksUri: `${issuer}/.well-known/jwks.json`,
     scopesSupported: ['openid', 'profile', 'email', 'offline_access'],
     responseTypesSupported: ['code'],

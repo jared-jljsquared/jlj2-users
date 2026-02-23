@@ -14,7 +14,11 @@ export interface ValidatedAuthorizationRequest {
   codeChallenge: string | null
   codeChallengeMethod: string | null
   nonce: string | null
+  prompt: string | null
+  maxAge: number | null
 }
+
+const VALID_PROMPT_VALUES = ['none', 'login', 'consent', 'select_account']
 
 export const validateAuthorizationRequest = async (params: {
   clientId?: string
@@ -25,6 +29,8 @@ export const validateAuthorizationRequest = async (params: {
   codeChallenge?: string
   codeChallengeMethod?: string
   nonce?: string
+  prompt?: string
+  max_age?: string
 }): Promise<
   | { isValid: true; data: ValidatedAuthorizationRequest }
   | {
@@ -161,6 +167,31 @@ export const validateAuthorizationRequest = async (params: {
     }
   }
 
+  if (params.prompt && !VALID_PROMPT_VALUES.includes(params.prompt)) {
+    return {
+      isValid: false,
+      error: 'invalid_request',
+      errorDescription: `prompt must be one of: ${VALID_PROMPT_VALUES.join(', ')}`,
+      redirectUri: params.redirectUri,
+      state: params.state ?? null,
+    }
+  }
+
+  let maxAge: number | null = null
+  if (params.max_age !== undefined && params.max_age !== '') {
+    const parsed = parseInt(params.max_age, 10)
+    if (Number.isNaN(parsed) || parsed < 0) {
+      return {
+        isValid: false,
+        error: 'invalid_request',
+        errorDescription: 'max_age must be a non-negative integer',
+        redirectUri: params.redirectUri,
+        state: params.state ?? null,
+      }
+    }
+    maxAge = parsed
+  }
+
   if (
     params.codeChallenge &&
     !isCodeChallengeWithinLimit(params.codeChallenge)
@@ -195,6 +226,11 @@ export const validateAuthorizationRequest = async (params: {
       codeChallenge: params.codeChallenge?.trim() || null,
       codeChallengeMethod: params.codeChallengeMethod?.trim() || null,
       nonce: params.nonce?.trim() || null,
+      prompt:
+        params.prompt?.trim() && VALID_PROMPT_VALUES.includes(params.prompt)
+          ? params.prompt
+          : null,
+      maxAge,
     },
   }
 }

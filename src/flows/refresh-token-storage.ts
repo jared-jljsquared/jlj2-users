@@ -134,6 +134,51 @@ export const consumeRefreshToken = async (
   return stored
 }
 
+export interface RefreshTokenLookup {
+  token_value: string
+  client_id: string
+  user_id: string
+  scopes: string[]
+  expires_at: Date
+  created_at: Date
+}
+
+/**
+ * Look up a refresh token by value without consuming it.
+ * Used for token introspection. Returns null if not found or expired.
+ */
+export const getRefreshTokenByValue = async (
+  token: string,
+): Promise<RefreshTokenLookup | null> => {
+  const client = getDbClient()
+  const keyspace = getKeyspace()
+
+  const selectResult = await client.execute(
+    `SELECT * FROM ${keyspace}.refresh_tokens WHERE token_value = ?`,
+    [token],
+  )
+
+  if (selectResult.rows.length === 0) {
+    return null
+  }
+
+  const row = selectResult.rows[0]
+  const expiresAt = row.expires_at as Date
+  const now = new Date()
+  if (expiresAt < now) {
+    return null
+  }
+
+  return {
+    token_value: row.token_value as string,
+    client_id: String(row.client_id),
+    user_id: row.user_id as string,
+    scopes: (row.scopes ?? []) as string[],
+    expires_at: expiresAt,
+    created_at: row.created_at as Date,
+  }
+}
+
 /**
  * Revoke a single refresh token by token value.
  * Verifies client_id matches before revoking.

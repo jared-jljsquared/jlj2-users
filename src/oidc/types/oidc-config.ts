@@ -5,6 +5,8 @@ export interface OidcConfig {
   tokenEndpoint: string
   userinfoEndpoint: string
   revocationEndpoint: string
+  endSessionEndpoint: string
+  introspectionEndpoint: string
   jwksUri: string
   registrationEndpoint?: string
   scopesSupported: string[]

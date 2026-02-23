@@ -46,6 +46,8 @@ Initiates the authorization code flow. User must be authenticated (session cooki
 | `code_challenge` | For public clients | PKCE code challenge |
 | `code_challenge_method` | With code_challenge | `S256` or `plain` |
 | `nonce` | Optional | For ID token replay protection |
+| `prompt` | Optional | `none`, `login`, `consent`, `select_account` |
+| `max_age` | Optional | Max seconds since last auth; re-auth if exceeded |
 
 **Success:** 302 redirect to `redirect_uri` with `code` and `state` query parameters.
 
@@ -116,6 +118,47 @@ Returns user claims. Requires Bearer access token.
 | 401 | `invalid_token` | Missing/invalid Authorization header or token |
 | 403 | `user_inactive` | User account is deactivated |
 | 404 | `user_not_found` | User no longer exists |
+
+---
+
+## End Session (Logout)
+
+### GET /logout
+
+OIDC RP-Initiated Logout. Clears the IdP session cookie and optionally redirects to the RP.
+
+**Query Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `post_logout_redirect_uri` | No | Where to redirect after logout |
+| `id_token_hint` | With post_logout_redirect_uri | ID token (used to validate redirect URI against client) |
+| `state` | No | Returned to RP in redirect |
+
+When `post_logout_redirect_uri` is provided, `id_token_hint` is required. The redirect URI must be in the client's registered redirect URIs (client identified by `aud` in the ID token).
+
+**Success:** 302 redirect to `post_logout_redirect_uri` (with `state` if provided), or to `/login` when no redirect URI.
+
+---
+
+## Token Introspection
+
+### POST /introspect
+
+RFC 7662 Token Introspection. Returns whether a token is active and its metadata. Requires client authentication (confidential clients only).
+
+**Headers:** `Content-Type: application/x-www-form-urlencoded`
+
+**Request Body:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `token` | Yes | Access token or refresh token to introspect |
+| `token_type_hint` | No | `access_token` or `refresh_token` |
+
+**Client Authentication:** `client_secret_basic` or `client_secret_post` (required).
+
+**Success Response (200):** JSON with `active: true` and claims (`sub`, `scope`, `client_id`, `exp`, `iat`, etc.) when token is valid; `active: false` when invalid or expired.
 
 ---
 

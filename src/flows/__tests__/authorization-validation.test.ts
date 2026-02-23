@@ -291,6 +291,62 @@ describe('Authorization Validation', () => {
     expect(result.isValid).toBe(true)
   })
 
+  it('should accept valid prompt parameter', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      prompt: 'login',
+    })
+    expect(result.isValid).toBe(true)
+    if (result.isValid) {
+      expect(result.data.prompt).toBe('login')
+    }
+  })
+
+  it('should reject invalid prompt parameter', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      prompt: 'invalid_prompt',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+    }
+  })
+
+  it('should accept valid max_age parameter', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      max_age: '300',
+    })
+    expect(result.isValid).toBe(true)
+    if (result.isValid) {
+      expect(result.data.maxAge).toBe(300)
+    }
+  })
+
+  it('should reject invalid max_age parameter', async () => {
+    const result = await validateAuthorizationRequest({
+      clientId: 'client-123',
+      redirectUri: 'https://example.com/callback',
+      responseType: 'code',
+      scope: 'openid',
+      max_age: 'not-a-number',
+    })
+    expect(result.isValid).toBe(false)
+    if (!result.isValid) {
+      expect(result.error).toBe('invalid_request')
+    }
+  })
+
   it('should reject client that does not support code response type', async () => {
     vi.mocked(clientService.getClientById).mockResolvedValue({
       id: 'client-123',
