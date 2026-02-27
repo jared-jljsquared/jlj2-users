@@ -11,11 +11,5 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "lib": ["es2015"],
-  "include": [
-    "src/**/*",
-    "tests/**/*",
-    "vitest.config.ts",
-    "playwright.config.ts"
-  ]
+  "lib": ["es2015"]
 }

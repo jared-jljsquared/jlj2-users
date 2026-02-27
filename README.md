@@ -1,17 +1,31 @@
 # jlj2-users
 
-OAuth 2.0 / OpenID Connect identity provider for user registration and login.
+Monorepo: OAuth 2.0 / OpenID Connect identity provider and authorization services.
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| [jlj2-authentication](packages/jlj2-authentication) | User registration, login, OIDC flows |
+
+## Quick Start
+
+```bash
+pnpm install
+pnpm migrate up      # Run database migrations
+pnpm dev:auth        # Start authentication service
+```
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [docs/api.md](docs/api.md) | API reference (endpoints, parameters, error codes) |
-| [docs/deployment.md](docs/deployment.md) | Deployment guide (env vars, ScyllaDB, providers) |
-| [docs/runbooks.md](docs/runbooks.md) | Operational runbooks (health, incidents, key rotation) |
-| [docs/manual-test-scenarios.md](docs/manual-test-scenarios.md) | Manual test checklist |
-| [docs/realms-evaluation.md](docs/realms-evaluation.md) | Realms/multi-tenant evaluation |
-| [README-SCYLLA.md](README-SCYLLA.md) | ScyllaDB local setup |
+| [packages/jlj2-authentication/docs/api.md](packages/jlj2-authentication/docs/api.md) | API reference (endpoints, parameters, error codes) |
+| [packages/jlj2-authentication/docs/deployment.md](packages/jlj2-authentication/docs/deployment.md) | Deployment guide (env vars, ScyllaDB, providers) |
+| [packages/jlj2-authentication/docs/runbooks.md](packages/jlj2-authentication/docs/runbooks.md) | Operational runbooks (health, incidents, key rotation) |
+| [packages/jlj2-authentication/docs/manual-test-scenarios.md](packages/jlj2-authentication/docs/manual-test-scenarios.md) | Manual test checklist |
+| [packages/jlj2-authentication/docs/realms-evaluation.md](packages/jlj2-authentication/docs/realms-evaluation.md) | Realms/multi-tenant evaluation |
+| [packages/jlj2-authentication/README-SCYLLA.md](packages/jlj2-authentication/README-SCYLLA.md) | ScyllaDB local setup |
 
 ## Session Cookie – SameSite=Lax
 
